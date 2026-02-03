@@ -6,6 +6,8 @@ interface User {
   email: string;
   role: 'ADMIN' | 'USER';
   avatarUrl?: string;
+  avatarPosition?: { x: number; y: number };
+  coverPosition?: { x: number; y: number };
 }
 
 interface AuthContextType {

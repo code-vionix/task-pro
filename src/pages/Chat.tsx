@@ -17,7 +17,6 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [loading, setLoading] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +24,7 @@ export default function Chat() {
     if (!currentUser?.id) return;
 
     // Connect to Socket.io
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       query: { userId: currentUser.id },
     });
     setSocket(newSocket);
@@ -63,7 +62,7 @@ export default function Chat() {
             chat.id === userId ? { ...chat, isOnline, lastSeen: new Date() } : chat
         ));
         if (selectedUser?.id === userId) {
-            setSelectedUser(prev => prev ? { ...prev, isOnline, lastSeen: new Date() } : null);
+            setSelectedUser((prev: any) => prev ? { ...prev, isOnline, lastSeen: new Date() } : null);
         }
     });
 
@@ -103,7 +102,7 @@ export default function Chat() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+        // loading state removed
     }
   };
 

@@ -89,7 +89,6 @@ export default function Profile() {
   const handleMouseDown = (e: React.MouseEvent, type: 'avatar' | 'cover') => {
       if (repositionMode !== type) return;
       setIsDragging(true);
-      const currentPos = type === 'cover' ? (user.coverPosition || { x: 50, y: 50 }) : (user.avatarPosition || { x: 50, y: 50 });
       dragStart.current = { 
           x: e.clientX, 
           y: e.clientY, 

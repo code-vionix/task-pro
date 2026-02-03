@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
+import api from '../lib/api';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -50,7 +51,7 @@ export default function Layout() {
 
   useEffect(() => {
     if (!user) return;
-    const socket = io('http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       query: { userId: user.id },
     });
 

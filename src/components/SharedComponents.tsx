@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Clock, LayoutDashboard, Play, StopCircle, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export function TaskItem({ task, isAdmin, onStart, onComplete, onStop, onDelete, depth = 0 }: any) {
+export function TaskItem({ task, isAdmin, onStart, onComplete, onStop, onDelete, onAssign, depth = 0 }: any) {
     const [expanded, setExpanded] = useState(false);
     const hasChildren = (task.subTasks && task.subTasks.length > 0) || (task.subSubTasks && task.subSubTasks.length > 0);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -152,10 +152,10 @@ export function TaskItem({ task, isAdmin, onStart, onComplete, onStop, onDelete,
             {expanded && hasChildren && (
                 <div>
                    {task.subTasks?.map((sub: any) => (
-                       <TaskItem key={sub.id} task={sub} isAdmin={isAdmin} onStart={onStart} onComplete={onComplete} onStop={onStop} onDelete={onDelete} depth={depth + 1} />
+                       <TaskItem key={sub.id} task={sub} isAdmin={isAdmin} onStart={onStart} onComplete={onComplete} onStop={onStop} onDelete={onDelete} onAssign={onAssign} depth={depth + 1} />
                    ))}
                    {task.subSubTasks?.map((sub: any) => (
-                       <TaskItem key={sub.id} task={sub} isAdmin={isAdmin} onStart={onStart} onComplete={onComplete} onStop={onStop} onDelete={onDelete} depth={depth + 1} />
+                       <TaskItem key={sub.id} task={sub} isAdmin={isAdmin} onStart={onStart} onComplete={onComplete} onStop={onStop} onDelete={onDelete} onAssign={onAssign} depth={depth + 1} />
                    ))}
                 </div>
             )}
