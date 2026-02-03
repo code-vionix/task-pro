@@ -1,4 +1,3 @@
-
 import clsx from 'clsx';
 import { Calendar, Camera, CheckCircle, FileText, Image as ImageIcon, Loader2, Mail, MessageSquare, Move, Save, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -132,7 +131,7 @@ export default function Profile() {
   };
 
   if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
-  if (!user) return <div className="text-center py-20 text-slate-400">User not found</div>;
+  if (!user) return <div className="text-center py-20 text-[var(--muted)]">User not found</div>;
 
   const currentCoverPos = repositionMode === 'cover' ? `${tempPos.x}% ${tempPos.y}%` : 
                           user.coverPosition ? `${user.coverPosition.x}% ${user.coverPosition.y}%` : 'center';
@@ -149,7 +148,7 @@ export default function Profile() {
       <div className="relative group">
         <div 
             className={clsx(
-                "h-72 rounded-3xl bg-slate-900 overflow-hidden relative shadow-2xl border border-white/5 transition-all",
+                "h-72 rounded-3xl bg-[var(--card)] overflow-hidden relative shadow-2xl border border-[var(--border)] transition-all",
                 repositionMode === 'cover' ? "cursor-move ring-4 ring-blue-500/50" : ""
             )}
             onMouseDown={(e) => handleMouseDown(e, 'cover')}
@@ -212,7 +211,7 @@ export default function Profile() {
             <div className="relative group/avatar">
                 <div 
                     className={clsx(
-                        "w-44 h-44 rounded-full bg-slate-900 border-[6px] border-[#030712] shadow-2xl overflow-hidden flex items-center justify-center relative transition-all",
+                        "w-44 h-44 rounded-full bg-[var(--card)] border-[6px] border-[var(--background)] shadow-2xl overflow-hidden flex items-center justify-center relative transition-all",
                         repositionMode === 'avatar' ? "cursor-move ring-4 ring-blue-500/50" : ""
                     )}
                     onMouseDown={(e) => handleMouseDown(e, 'avatar')}
@@ -226,7 +225,7 @@ export default function Profile() {
                             style={{ objectPosition: currentAvatarPos }}
                         />
                     ) : (
-                        <span className="text-7xl font-black text-white">{user.email[0].toUpperCase()}</span>
+                        <span className="text-7xl font-black text-[var(--foreground)]">{user.email[0].toUpperCase()}</span>
                     )}
                     
                     {uploadingAvatar && (
@@ -263,7 +262,7 @@ export default function Profile() {
 
             <div className="mb-6 pb-2">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-5xl font-black text-white tracking-tighter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">{user.email.split('@')[0]}</h1>
+                    <h1 className="text-5xl font-black text-[var(--foreground)] tracking-tighter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">{user.email.split('@')[0]}</h1>
                     {user.isOnline && (
                         <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
                             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
@@ -272,12 +271,12 @@ export default function Profile() {
                     )}
                 </div>
                 <div className="flex items-center gap-4 mt-2">
-                    <p className="text-blue-400 font-bold tracking-[0.15em] uppercase text-xs flex items-center gap-2 bg-blue-500/5 px-3 py-1 rounded-lg border border-blue-500/10">
+                    <p className="text-blue-500 font-bold tracking-[0.15em] uppercase text-xs flex items-center gap-2 bg-blue-500/5 px-3 py-1 rounded-lg border border-blue-500/10">
                         <CheckCircle className="w-4 h-4" />
                         {user.role} Precision Member
                     </p>
-                    <div className="h-4 w-px bg-white/10"></div>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="h-4 w-px bg-[var(--border)]"></div>
+                    <p className="text-[var(--muted)] text-xs font-bold uppercase tracking-widest flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         Active since {new Date(user.createdAt).getFullYear()}
                     </p>
@@ -300,9 +299,9 @@ export default function Profile() {
         <div className="space-y-8">
             <div className="glass-card p-8 space-y-5 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <FileText className="w-24 h-24" />
+                    <FileText className="w-24 h-24 text-[var(--muted)]" />
                 </div>
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <h3 className="text-xs font-black text-[var(--muted)] uppercase tracking-[0.2em] flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                     Biography Structure
                 </h3>
@@ -311,16 +310,16 @@ export default function Profile() {
                         <textarea 
                             value={bio} 
                             onChange={e => setBio(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-inner min-h-[120px] resize-none"
+                            className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-inner min-h-[120px] resize-none"
                         />
                         <div className="flex gap-2">
-                            <button onClick={handleUpdate} className="flex-1 bg-blue-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-500 transition-all"><Save className="w-3 h-3"/> Commit</button>
-                            <button onClick={() => setIsEditing(false)} className="flex-1 bg-white/5 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-white/10 transition-all">Cancel</button>
+                            <button onClick={handleUpdate} className="flex-1 bg-blue-600 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-blue-500 transition-all text-white"><Save className="w-3 h-3"/> Commit</button>
+                            <button onClick={() => setIsEditing(false)} className="flex-1 bg-[var(--card-hover)] py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg hover:bg-[var(--border)] transition-all text-[var(--foreground)]">Cancel</button>
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-5">
-                        <p className="text-slate-400 text-sm leading-relaxed font-medium italic border-l-2 border-white/5 pl-4 py-1">
+                        <p className="text-[var(--muted)] text-sm leading-relaxed font-medium italic border-l-2 border-[var(--border)] pl-4 py-1">
                             {user.bio || "Data stream pending. User bio not yet initialized."}
                         </p>
                         {isOwnProfile && (
@@ -333,27 +332,27 @@ export default function Profile() {
             </div>
 
             <div className="glass-card p-8 space-y-6">
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <h3 className="text-xs font-black text-[var(--muted)] uppercase tracking-[0.2em] flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
                     Registry Data
                 </h3>
                 <div className="space-y-5">
                     <div className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
-                            <Mail className="w-4 h-4 text-blue-400" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/5 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
+                            <Mail className="w-4 h-4 text-blue-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Primary Sync</p>
-                            <p className="text-sm font-bold text-white truncate">{user.email}</p>
+                            <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest mb-0.5">Primary Sync</p>
+                            <p className="text-sm font-bold text-[var(--foreground)] truncate">{user.email}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 group">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
-                            <Calendar className="w-4 h-4 text-purple-400" />
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/5 flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
+                            <Calendar className="w-4 h-4 text-purple-500" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Initialization</p>
-                            <p className="text-sm font-bold text-white">{new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+                            <p className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest mb-0.5">Initialization</p>
+                            <p className="text-sm font-bold text-[var(--foreground)]">{new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
                         </div>
                     </div>
                 </div>
@@ -362,33 +361,33 @@ export default function Profile() {
 
         <div className="md:col-span-2 space-y-8">
             <div className="grid grid-cols-2 gap-6">
-                <div className="glass-card p-8 flex items-center gap-6 border border-white/5 group hover:bg-blue-500/5 transition-all">
+                <div className="glass-card p-8 flex items-center gap-6 border border-[var(--border)] group hover:bg-blue-500/5 transition-all">
                     <div className="w-16 h-16 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                         <FileText className="w-8 h-8" />
                     </div>
                     <div>
-                        <span className="text-4xl font-black text-white block leading-none">{user._count.posts}</span>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Data Units</span>
+                        <span className="text-4xl font-black text-[var(--foreground)] block leading-none">{user._count.posts}</span>
+                        <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.2em]">Data Units</span>
                     </div>
                 </div>
-                <div className="glass-card p-8 flex items-center gap-6 border border-white/5 group hover:bg-purple-500/5 transition-all">
+                <div className="glass-card p-8 flex items-center gap-6 border border-[var(--border)] group hover:bg-purple-500/5 transition-all">
                     <div className="w-16 h-16 rounded-3xl bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                         <CheckCircle className="w-8 h-8" />
                     </div>
                     <div>
-                        <span className="text-4xl font-black text-white block leading-none">{user._count.tasks}</span>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Resolved Tasks</span>
+                        <span className="text-4xl font-black text-[var(--foreground)] block leading-none">{user._count.tasks}</span>
+                        <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.2em]">Resolved Tasks</span>
                     </div>
                 </div>
             </div>
 
-            <div className="glass-card border border-white/5 overflow-hidden">
-                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-                    <h3 className="text-lg font-black text-white uppercase tracking-tighter italic">Recent Transmissions</h3>
-                    <div className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-lg text-[10px] font-black tracking-widest">ENCRYPTED</div>
+            <div className="glass-card border border-[var(--border)] overflow-hidden">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-white/[0.02]">
+                    <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tighter italic">Recent Transmissions</h3>
+                    <div className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[10px] font-black tracking-widest">ENCRYPTED</div>
                 </div>
-                <div className="p-12 text-center text-slate-500 italic text-sm">
-                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 text-slate-700">
+                <div className="p-12 text-center text-[var(--muted)] italic text-sm">
+                    <div className="w-16 h-16 bg-[var(--card)] rounded-2xl flex items-center justify-center mx-auto mb-6 text-[var(--muted)]/50">
                         <MessageSquare className="w-8 h-8" />
                     </div>
                     End-to-end encrypted activity logs are currently restricted.

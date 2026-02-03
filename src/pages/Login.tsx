@@ -61,7 +61,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#030712] relative overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] relative overflow-hidden font-sans transition-colors duration-300">
       {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
@@ -74,20 +74,20 @@ export default function Login() {
           <div className="w-16 h-16 rounded-2xl premium-gradient flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20 ring-4 ring-white/5">
              <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight uppercase italic leading-none">
+          <h1 className="text-4xl font-black text-[var(--foreground)] tracking-tight uppercase italic leading-none">
             Task<span className="text-blue-500">Pro</span>
           </h1>
-          <p className="text-slate-500 text-xs font-bold tracking-[0.3em] uppercase mt-2">Enterprise Solutions</p>
+          <p className="text-[var(--muted)] text-xs font-bold tracking-[0.3em] uppercase mt-2">Enterprise Solutions</p>
         </div>
 
-        <div className="glass p-8 rounded-[2rem] shadow-2xl border border-white/5 relative overflow-hidden group">
+        <div className="glass p-8 rounded-[2rem] shadow-2xl border border-[var(--border)] relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-full h-1 premium-gradient opacity-50"></div>
           
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">
               {isRegister ? 'Initialize Access' : 'Secure Terminal'}
             </h2>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[var(--muted)] text-sm">
               {isRegister ? 'Construct your authorized identity.' : 'Provide your encrypted credentials.'}
             </p>
           </div>
@@ -96,8 +96,8 @@ export default function Login() {
             <div className={clsx(
               "p-4 mb-6 rounded-xl text-sm font-medium border animate-in slide-in-from-top-2 duration-300",
               error.includes('successful') 
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                : "bg-rose-500/10 text-rose-500 border-rose-500/20"
             )}>
               {error}
             </div>
@@ -105,30 +105,30 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Universal Identifier</label>
+              <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Universal Identifier</label>
               <div className="relative group/input">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
                 <input
                   type="email"
                   placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white/[0.05] text-white placeholder-slate-600 transition-all font-medium"
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-[var(--card-hover)] text-[var(--foreground)] placeholder-[var(--muted)] transition-all font-medium"
                   required
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Security Keyphrase</label>
+              <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Security Keyphrase</label>
               <div className="relative group/input">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
                 <input
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-white/[0.05] text-white placeholder-slate-600 transition-all font-medium"
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-[var(--card-hover)] text-[var(--foreground)] placeholder-[var(--muted)] transition-all font-medium"
                   required
                 />
               </div>
@@ -150,17 +150,17 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-white/5 text-center">
+          <div className="mt-8 pt-6 border-t border-[var(--border)] text-center">
             <button
               onClick={() => setIsRegister(!isRegister)}
-              className="text-slate-500 hover:text-white text-xs font-bold tracking-wide transition-colors uppercase"
+              className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs font-bold tracking-wide transition-colors uppercase"
             >
               {isRegister ? 'Return to Primary Terminal' : "Initiate New Account Protocol"}
             </button>
           </div>
         </div>
         
-        <p className="mt-8 text-center text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
+        <p className="mt-8 text-center text-[10px] font-bold text-[var(--muted)] uppercase tracking-[0.2em]">
           &copy; 2026 TASKPRO TECHNOLOGIES. ALL RIGHTS RESERVED.
         </p>
       </div>

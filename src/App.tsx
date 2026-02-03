@@ -44,28 +44,30 @@ function ErrorFallback({ error, resetErrorBoundary }: any) {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Toaster position="top-right" />
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-               <Route index element={<Dashboard />} />
-               <Route path="tasks" element={<MyTasks />} />
-               <Route path="admin" element={<SystemControl />} />
-               <Route path="settings" element={<Configuration />} />
-               <Route path="community" element={<Community />} />
-               <Route path="profile" element={<Profile />} />
-               <Route path="profile/:id" element={<Profile />} />
-               <Route path="chat" element={<Chat />} />
-            </Route>
-          </Routes>
-        </ErrorBoundary>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Toaster position="top-right" />
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                 <Route index element={<Dashboard />} />
+                 <Route path="tasks" element={<MyTasks />} />
+                 <Route path="admin" element={<SystemControl />} />
+                 <Route path="settings" element={<Configuration />} />
+                 <Route path="community" element={<Community />} />
+                 <Route path="profile" element={<Profile />} />
+                 <Route path="profile/:id" element={<Profile />} />
+                 <Route path="chat" element={<Chat />} />
+              </Route>
+            </Routes>
+          </ErrorBoundary>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
