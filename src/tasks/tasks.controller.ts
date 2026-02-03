@@ -48,4 +48,9 @@ export class TasksController {
   complete(@Request() req, @Param('id') id: string) {
     return this.tasksService.completeTask(id, req.user.userId);
   }
+
+  @Patch(':id/assign')
+  assign(@Request() req, @Param('id') id: string) {
+    return this.tasksService.assignTask(id, req.user.userId, req.user.role);
+  }
 }

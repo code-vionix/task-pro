@@ -60,6 +60,15 @@ export default function Dashboard() {
     }
   };
 
+  const handleAssign = async (id: string) => {
+    try {
+        await api.patch(`/tasks/${id}/assign`);
+        fetchTasks();
+    } catch (e: any) {
+        alert(e.response?.data?.message || 'Failed to assign task');
+    }
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -129,7 +138,7 @@ export default function Dashboard() {
           ) : (
             <div className="divide-y divide-white/[0.05]">
               {tasks.map((task) => (
-                <TaskItem key={task.id} task={task} isAdmin={user?.role === 'ADMIN'} onStart={handleStart} onComplete={handleComplete} onStop={handleStop} onDelete={handleDelete} />
+                <TaskItem key={task.id} task={task} isAdmin={user?.role === 'ADMIN'} onStart={handleStart} onComplete={handleComplete} onStop={handleStop} onDelete={handleDelete} onAssign={handleAssign} />
               ))}
             </div>
           )}
@@ -199,7 +208,8 @@ function CreateTaskModal({ isOpen, onClose, isAdmin, onSuccess }: any) {
                     {isAdmin && (
                         <div>
                             <label className="block text-sm text-slate-400 mb-1">Assign To (Email)</label>
-                            <input value={assignedToEmail} onChange={e => setAssignedToEmail(e.target.value)} placeholder="user@taskpro.com" className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+                            <input value={assignedToEmail} onChange={e => setAssignedToEmail(e.target.value)} placeholder="Leave empty for Open Task" className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+                            <p className="text-[10px] text-slate-500 mt-1">If left empty, any user can see and claim this task.</p>
                         </div>
                     )}
                     <button disabled={loading} className="w-full premium-gradient text-white py-3 rounded-xl font-bold mt-4 hover:opacity-90 disabled:opacity-50">

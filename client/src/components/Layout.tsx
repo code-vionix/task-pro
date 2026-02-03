@@ -1,12 +1,67 @@
 import clsx from 'clsx';
-import { Bell, ChevronRight, Home, List, LogOut, Settings, Shield } from 'lucide-react';
-import React from 'react';
+import { Bell, ChevronRight, Globe, Home, List, LogOut, MessageSquare, Settings, Shield, User } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+      try {
+          const res = await api.get('/notifications');
+          setNotifications(res.data);
+      } catch (err) {
+          console.error('Failed to fetch notifications', err);
+      }
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+      // Mark as read
+      if (!notif.isRead) {
+          await api.patch(`/notifications/${notif.id}/read`);
+          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      }
+      setShowNotifications(false);
+
+      // Redirect based on type
+      if (notif.type === 'MESSAGE' && notif.data?.senderId) {
+          navigate(`/chat?user=${notif.data.senderId}`);
+      } else if ((notif.type === 'REACTION' || notif.type === 'COMMENT') && notif.data?.postId) {
+          navigate(`/community#post-${notif.data.postId}`);
+      } else if (notif.type === 'TASK_ASSIGNED') {
+          navigate(`/tasks`);
+      }
+  };
+
+  const markAllAsRead = async () => {
+      await api.post('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const socket = io('http://localhost:5000', {
+      query: { userId: user.id },
+    });
+
+    socket.on('newNotification', (notif) => {
+      setNotifications(prev => [notif, ...prev.slice(0, 19)]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -41,6 +96,9 @@ export default function Layout() {
           <div className="px-4 py-2 mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">General</div>
           <NavItem to="/" icon={<Home className="w-5 h-5"/>} label="Dashboard" />
           <NavItem to="/tasks" icon={<List className="w-5 h-5"/>} label="My Tasks" />
+          <NavItem to="/community" icon={<Globe className="w-5 h-5"/>} label="Community" />
+          <NavItem to="/chat" icon={<MessageSquare className="w-5 h-5"/>} label="Secure Chat" />
+          <NavItem to="/profile" icon={<User className="w-5 h-5"/>} label="My Profile" />
           
           {user?.role === 'ADMIN' && (
             <>
@@ -53,8 +111,16 @@ export default function Layout() {
 
         <div className="p-6 mt-auto">
           <div className="glass-card p-4 flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
-               <span className="text-sm font-bold text-white">{user?.email[0].toUpperCase()}</span>
+            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+               {user?.avatarUrl ? (
+                 <img 
+                    src={user.avatarUrl} 
+                    className="w-full h-full object-cover" 
+                    style={{ objectPosition: user.avatarPosition ? `${user.avatarPosition.x}% ${user.avatarPosition.y}%` : 'center' }}
+                 />
+               ) : (
+                 <span className="text-sm font-bold text-white">{user?.email[0].toUpperCase()}</span>
+               )}
             </div>
             <div className="flex-1 min-w-0">
                <p className="text-xs font-bold text-white truncate px-0">{user?.email.split('@')[0]}</p>
@@ -81,10 +147,62 @@ export default function Layout() {
              <span className="text-white font-bold">{useLocation().pathname === '/' ? 'Dashboard' : 'Navigation'}</span>
            </div>
            <div className="flex items-center gap-4">
-              <button className="p-2.5 glass-card rounded-xl text-slate-400 hover:text-white transition-colors relative">
-                 <Bell className="w-5 h-5" />
-                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-blue-500 rounded-full border border-[#030712]"></span>
-              </button>
+               <div className="relative">
+                  <button 
+                    onClick={() => setShowNotifications(!showNotifications)} 
+                    className={clsx(
+                        "p-2.5 glass-card rounded-xl transition-all relative group",
+                        showNotifications ? "bg-white/10 text-white" : "text-slate-400 hover:text-white"
+                    )}
+                   >
+                      <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2 w-4 h-4 bg-rose-500 rounded-full border-2 border-[#030712] flex items-center justify-center text-[8px] font-black text-white">
+                            {unreadCount}
+                        </span>
+                      )}
+                   </button>
+
+                   {showNotifications && (
+                      <div className="absolute right-0 mt-4 w-80 glass-card bg-[#030712]/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                          <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                              <h3 className="text-xs font-black text-white uppercase tracking-widest">Notifications</h3>
+                              {unreadCount > 0 && (
+                                  <button onClick={markAllAsRead} className="text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-tight">Mark all read</button>
+                              )}
+                          </div>
+                          <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                              {notifications.length === 0 ? (
+                                  <div className="p-10 text-center text-slate-500 text-xs italic">No transmissions found</div>
+                              ) : (
+                                  <div className="divide-y divide-white/5">
+                                      {notifications.map((n) => (
+                                          <button 
+                                              key={n.id}
+                                              onClick={() => handleNotificationClick(n)}
+                                              className={clsx(
+                                                "w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3",
+                                                !n.isRead && "bg-blue-600/[0.03]"
+                                              )}
+                                          >
+                                              <div className={clsx(
+                                                  "w-2 h-2 rounded-full shrink-0 mt-1.5",
+                                                  !n.isRead ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-slate-700"
+                                              )}></div>
+                                              <div>
+                                                  <p className={clsx("text-xs leading-relaxed", !n.isRead ? "text-white font-medium" : "text-slate-400")}>{n.message}</p>
+                                                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter mt-1">
+                                                      {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {n.type}
+                                                  </p>
+                                              </div>
+                                          </button>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                   )}
+               </div>
               <div className="h-6 w-px bg-white/10 mx-2"></div>
               <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-slate-400 hidden sm:block">UPTIME: 99.9%</span>

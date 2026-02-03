@@ -1,23 +1,25 @@
 
 import React from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './pages/Login';
-// Import pages lazily or stub them
+import Chat from './pages/Chat';
+import Community from './pages/Community';
 import Configuration from './pages/Configuration';
 import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
 import MyTasks from './pages/MyTasks';
+import Profile from './pages/Profile';
 import SystemControl from './pages/SystemControl';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 }
-
-import { ErrorBoundary } from 'react-error-boundary';
 
 function ErrorFallback({ error, resetErrorBoundary }: any) {
   return (
@@ -43,6 +45,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster position="top-right" />
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -55,6 +58,10 @@ export default function App() {
                <Route path="tasks" element={<MyTasks />} />
                <Route path="admin" element={<SystemControl />} />
                <Route path="settings" element={<Configuration />} />
+               <Route path="community" element={<Community />} />
+               <Route path="profile" element={<Profile />} />
+               <Route path="profile/:id" element={<Profile />} />
+               <Route path="chat" element={<Chat />} />
             </Route>
           </Routes>
         </ErrorBoundary>

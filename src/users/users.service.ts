@@ -1,34 +1,57 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, User } from '@prisma/client';
+
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findOne(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-    });
-  }
-
-  async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany();
-  }
-
-  async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-    });
-  }
-
-  async create(data: Prisma.UserCreateInput): Promise<User> {
+  async create(data: any) {
     return this.prisma.user.create({
       data,
     });
   }
 
-  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
+  async findOne(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
+  async findOneById(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  async findProfile(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        bio: true,
+        avatarUrl: true,
+        coverImageUrl: true,
+        coverPosition: true,
+        avatarPosition: true,
+        isOnline: true,
+        lastSeen: true,
+        createdAt: true,
+        _count: {
+          select: {
+            posts: true,
+            tasks: true,
+          },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async update(id: string, data: any) {
     return this.prisma.user.update({
       where: { id },
       data,
@@ -42,7 +65,14 @@ export class UsersService {
     });
   }
 
-  async findOneById(id: string): Promise<User | null> {
-    return this.findById(id);
+  async findAll() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        avatarUrl: true,
+        isOnline: true,
+      },
+    });
   }
 }

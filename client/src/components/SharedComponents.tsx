@@ -8,15 +8,27 @@ export function TaskItem({ task, isAdmin, onStart, onComplete, onStop, onDelete,
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
     useEffect(() => {
-        if (task.status === 'IN_PROGRESS' && task.startedAt && task.duration && !task.isStopped) {
-            const interval = setInterval(() => {
+        if (task.status === 'IN_PROGRESS' && task.startedAt && task.duration) {
+            const updateTimer = () => {
                 const start = new Date(task.startedAt).getTime();
-                const now = Date.now();
+                let now = Date.now();
+                
+                // If paused, use the time it was stopped at
+                if (task.isStopped && task.lastStoppedAt) {
+                    now = new Date(task.lastStoppedAt).getTime();
+                }
+
                 const elapsed = (now - start) / 1000;
                 const remaining = Math.max(0, task.duration - elapsed);
                 setTimeLeft(remaining);
-            }, 1000);
-            return () => clearInterval(interval);
+            };
+
+            updateTimer(); // Initial update
+
+            if (!task.isStopped) {
+                const interval = setInterval(updateTimer, 1000);
+                return () => clearInterval(interval);
+            }
         }
     }, [task]);
 
@@ -80,8 +92,15 @@ export function TaskItem({ task, isAdmin, onStart, onComplete, onStop, onDelete,
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        {/* User Actions */}
-                        {!isAdmin && (
+                        {/* Unassigned Task Action */}
+                        {!isAdmin && !task.userId && (
+                             <button onClick={() => onAssign(task.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 animate-pulse">
+                                <LayoutDashboard className="w-3 h-3" /> Claim Task
+                            </button>
+                        )}
+
+                        {/* User Actions for Assigned Tasks */}
+                        {!isAdmin && task.userId && (
                             <>
                                 {task.status === 'PENDING' && !task.isStopped && (
                                     <button onClick={() => onStart(task.id)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2">

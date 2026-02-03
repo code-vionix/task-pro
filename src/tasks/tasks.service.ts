@@ -1,17 +1,25 @@
 
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(userId: string, createTaskDto: any, role: Role) {
-    let targetUserId = userId;
+    if (role !== Role.ADMIN) {
+      throw new ForbiddenException('Only admins can create tasks');
+    }
+
+    let targetUserId: string | null = null;
     
-    // Admin can assign tasks to other users
-    if (role === Role.ADMIN && createTaskDto.assignedToEmail) {
+    // If admin explicitly assigns to a user
+    if (createTaskDto.assignedToEmail) {
       const user = await this.prisma.user.findUnique({
         where: { email: createTaskDto.assignedToEmail }
       });
@@ -27,15 +35,26 @@ export class TasksService {
     // Remove auxiliary fields before creation
     const { assignedToEmail, duration: dur, ...taskData } = createTaskDto;
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         ...taskData,
         duration: duration,
-        userId: targetUserId,
+        userId: targetUserId, // Can be null now
         startTime: new Date(),
         endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default window
       },
     });
+
+    if (targetUserId) {
+        await this.notifications.create({
+            userId: targetUserId,
+            type: 'TASK_ASSIGNED',
+            message: `Admin assigned a new task to you: ${task.title}`,
+            data: { taskId: task.id }
+        });
+    }
+
+    return task;
   }
 
   async findAll(userId: string, role: Role) {
@@ -45,9 +64,38 @@ export class TasksService {
         include: { subTasks: { include: { subSubTasks: true } } }
       });
     }
+    // Users see their own tasks AND unassigned tasks (available pool)
     return this.prisma.task.findMany({
-      where: { userId, deletedAt: null },
+      where: { 
+        deletedAt: null,
+        OR: [
+          { userId: userId },
+          { userId: null }
+        ]
+      },
       include: { subTasks: { include: { subSubTasks: true } } },
+    });
+  }
+
+  async assignTask(taskId: string, userId: string, role: Role) {
+    // Check if task exists and is unassigned
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId }
+    });
+
+    if (!task) throw new NotFoundException('Task not found');
+
+    // If task is already assigned
+    if (task.userId) {
+       // If user is trying to assign to self but it's already taken
+       // "kono user ekta task e asgin korle oi task e ar kaw asgin korte parbe na"
+       throw new ForbiddenException('Task is already assigned to a user');
+    }
+
+    // Assign to self
+    return this.prisma.task.update({
+      where: { id: taskId },
+      data: { userId: userId }
     });
   }
 
@@ -75,10 +123,35 @@ export class TasksService {
       },
     });
 
-    return this.prisma.task.update({
+    // Handle email assignment for Admins
+    if (role === Role.ADMIN && updateTaskDto.assignedToEmail) {
+        const user = await this.prisma.user.findUnique({
+             where: { email: updateTaskDto.assignedToEmail }
+        });
+        if (!user) throw new NotFoundException(`User with email ${updateTaskDto.assignedToEmail} not found`);
+        updateTaskDto.userId = user.id;
+        delete updateTaskDto.assignedToEmail;
+    } else if (updateTaskDto.assignedToEmail) {
+        // Non-admins shouldn't be assigning tasks? Or ignore?
+        // Safe to just delete it to prevent errors if schema is strict, though schema doesn't have it.
+        delete updateTaskDto.assignedToEmail;
+    }
+
+    const updatedTask = await this.prisma.task.update({
       where: { id },
       data: updateTaskDto,
     });
+
+    if (updateTaskDto.userId && updateTaskDto.userId !== task.userId) {
+        await this.notifications.create({
+            userId: updateTaskDto.userId,
+            type: 'TASK_ASSIGNED',
+            message: `Admin assigned a task to you: ${updatedTask.title}`,
+            data: { taskId: updatedTask.id }
+        });
+    }
+
+    return updatedTask;
   }
 
   async remove(id: string, userId: string, role: Role) {
@@ -124,7 +197,10 @@ export class TasksService {
     
     return this.prisma.task.update({
       where: { id },
-      data: { isStopped: true },
+      data: { 
+          isStopped: true,
+          lastStoppedAt: new Date()
+      },
     });
   }
 
@@ -134,10 +210,23 @@ export class TasksService {
     if (task.userId !== userId) throw new ForbiddenException('Access denied');
     
     // If task is stopped, resume it (set isStopped = false)
+    // If task is stopped, resume it (set isStopped = false)
     if (task.isStopped) {
+         let newStartedAt = task.startedAt;
+         const lastStoppedAt = (task as any).lastStoppedAt;
+         
+         if (lastStoppedAt && task.startedAt) {
+             const gap = Date.now() - new Date(lastStoppedAt).getTime();
+             newStartedAt = new Date(task.startedAt.getTime() + gap);
+         }
+
          return this.prisma.task.update({
             where: { id },
-            data: { isStopped: false },
+            data: { 
+                isStopped: false,
+                startedAt: newStartedAt,
+                lastStoppedAt: null
+            },
          });
     }
 

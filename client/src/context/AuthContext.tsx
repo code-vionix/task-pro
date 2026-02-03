@@ -5,12 +5,14 @@ interface User {
   id: string;
   email: string;
   role: 'ADMIN' | 'USER';
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (token: string, refreshToken: string, userData: User) => void;
   logout: () => void;
+  updateUserInfo: (userData: Partial<User>) => void;
   isLoading: boolean;
 }
 
@@ -32,6 +34,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  const updateUserInfo = (userData: Partial<User>) => {
+    setUser(prev => {
+        if (!prev) return null;
+        const updated = { ...prev, ...userData };
+        localStorage.setItem('user', JSON.stringify(updated));
+        return updated;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -48,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserInfo, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

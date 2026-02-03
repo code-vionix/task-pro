@@ -1,98 +1,94 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TaskPro - Advanced Enterprise Task & Communication Suite
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+TaskPro হলো একটি আধুনিক, ফুল-স্ট্যাক এন্টারপ্রাইজ ম্যানেজমেন্ট এবং কমিউনিকেশন প্ল্যাটফর্ম। এটি বড় টিমের কাজ পরিচালনা, রিয়েল-টাইম চ্যাটিং এবং সোশ্যাল এনগেজমেন্টের জন্য তৈরি করা হয়েছে।
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 মূল ফিচারসমূহ (Key Features)
 
-## Description
+### ১. অ্যাডভান্সড রিয়েল-টাইম চ্যাট (Messenger-like Experience)
+- **নিরাপদ চ্যাটিং:** এন্ড-টু-এন্ড কমিউনিকেশন ইন্টারফেস।
+- **রিড রিসিপ্ট (Seen Status):** মেসেজ দেখা মাত্রই ডাবল চেকমার্ক সবুজ হয়ে যায়।
+- **মেসেজ রিঅ্যাকশন:** মেসেজে 👍, ❤️ বা 🔥 রিঅ্যাকশন দেওয়ার সুবিধা।
+- **রিয়েল-টাইম স্ট্যাটাস:** কে অনলাইন আছে বা কে কতক্ষণ আগে অনলাইনে ছিল (Last Seen) তা দেখা যায়।
+- **আনরিড কাউন্ট:** কন্টাক্ট লিস্টে কতটি মেসেজ না পড়া অবস্থায় আছে তার নোটিফিকেশন ব্যাজ।
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### ২. স্মার্ট নোটিফিকেশন সিস্টেম
+- **ইনস্ট্যান্ট পুশ:** কেউ আপনার পোস্টে লাইক দিলে, কমেন্ট করলে বা নতুন মেসেজ দিলে সাথে সাথে নোটিফিকেশন আসবে।
+- **স্মার্ট রিডাইরেকশন:** নোটিফিকেশনে ক্লিক করলে সরাসরি সংশ্লিষ্ট চ্যাট বা নির্দিষ্ট পোস্টে নিয়ে যায়।
+- **রুম-বেসড সিঙ্ক:** আপনি যদি একাধিক ট্যাবে ব্রাউজার খুলে রাখেন, সব ট্যাবেই একসাথে নোটিফিকেশন আপডেট হবে।
 
-## Project setup
+### ৩. প্রোফাইল ও ইমেজ কাস্টমাইজেশন
+- **ড্র্যাগ-অ্যান্ড-অ্যাডজাস্ট:** প্রোফাইল এবং কভার ছবি আপলোড করার পর মাউস দিয়ে ড্র্যাগ করে ছবির পজিশন ঠিক করার সুবিধা।
+- **ক্লাউডিনারি ইন্টিগ্রেশন:** ছবিগুলো সরাসরি ক্লাউডিনারিতে আপলোড হয় এবং সেভ থাকে।
+- **পারফেক্ট রাউন্ড প্রোফাইল:** অ্যাপের সব জায়গায় প্রোফাইল ছবিগুলো খুব সুন্দরভাবে রাউন্ড ডিজাইন করা হয়েছে।
 
-```bash
-$ npm install
-```
+### ৪. কমিউনিটি ইকোসিস্টেম
+- **পোস্ট ও ফিড:** ব্যবহারকারীরা পোস্ট করতে পারেন এবং ইমেজ শেয়ার করতে পারেন।
+- **ইন্টারঅ্যাকশন:** পোস্টে লাইক, লাভ এবং ডাইরেক্ট কমেন্ট করার সুবিধা।
+- **অটো-স্ক্রোল:** নোটিফিকেশন থেকে কমেন্টে ক্লিক করলে ফিডে সরাসরি ওই পোস্টের কাছে স্ক্রল করে নিয়ে যায়।
 
-## Compile and run the project
+### ৫. টাস্ক ম্যানেজমেন্ট (Professional Workflow)
+- **অ্যাডমিন কন্ট্রোল:** অ্যাডমিন যেকোনো ইউজারকে টাস্ক অ্যাসাইন করতে পারেন।
+- **টাস্ক টাইপ:** 'Exam' এবং 'Practice' নামে দুই ধরনের টাস্ক।
+- **টাইমার ও কন্ট্রোল:** প্র্যাকটিস টাস্কের ক্ষেত্রে পজ (Pause) এবং রেজুমি (Resume) করার সুবিধা।
 
-```bash
-# development
-$ npm run start
+---
 
-# watch mode
-$ npm run start:dev
+## 🛠 প্রযুক্তিগত চ্যালেঞ্জসমূহ (Implementation Challenges)
 
-# production mode
-$ npm run start:prod
-```
+প্রজেক্টটি ডেভলপ করার সময় বেশ কিছু জটিল কারিগরি সমস্যার সম্মুখীন হতে হয়েছে এবং সেগুলো স্মার্টলি সমাধান করা হয়েছে:
 
-## Run tests
+1.  **রিয়েল-টাইম সিঙ্ক্রোনাইজেশন:** ইউজার যখন একাধিক ট্যাব খুলে রাখে, তখন একটি ট্যাবে মেসেজ পড়লে অন্য ট্যাবে নোটিফিকেশন ব্যাজ সরানোর জন্য Socket.io-তে 'Rooms' লজিক ব্যবহার করা হয়েছে।
+2.  **ইমেজ পজিশনিং লজিক:** ব্রাউজারের মধ্যে অবজেক্ট-পজিশন (X, Y স্থানাঙ্ক) ম্যানেজ করার জন্য একটি কাস্টম ড্র্যাগিং ইন্টারফেস তৈরি করা হয়েছে যা ডেটাবেসে JSON আকারে পজিশন সেভ রাখে।
+3.  **পোর্ট কনফ্লিক্ট ও জম্বি প্রসেস:** উইন্ডোজ পরিবেশে অনেক সময় নোড প্রসেসগুলো ব্যাকগ্রাউন্ডে আটকে থাকে (EADDRINUSE 5000)। এটি সমাধান করতে কাস্টম স্ক্রিপ্ট ব্যবহার করে সরাসরি প্রসেস আইডি (PID) কিল করার ব্যবস্থা রাখা হয়েছে।
+4.  **ডেটাবেস রিলেশনশিপ:** প্রিজমা (Prisma) ব্যবহার করে মেসেজ রিঅ্যাকশন এবং নোটিফিকেশনের মধ্যে জটিল রিকার্সিভ রিলেশনশিপ তৈরি করা হয়েছে।
 
-```bash
-# unit tests
-$ npm run test
+---
 
-# e2e tests
-$ npm run test:e2e
+## 🔌 API ডকুমেন্টেশন (API Endpoints)
 
-# test coverage
-$ npm run test:cov
-```
+### অথেন্টিকেশন (Authentication)
+| Method | Endpoint | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| POST | `/auth/register` | `email`, `password` | নতুন ইউজার রেজিস্ট্রেশন |
+| POST | `/auth/login` | `email`, `password` | লগইন এবং টোকেন জেনারেশন |
+| POST | `/auth/refresh` | `refreshToken` | এক্সেস টোকেন রিনিউ করা |
 
-## Deployment
+### প্রোফাইল ম্যানেজমেন্ট (User Profile)
+| Method | Endpoint | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| GET | `/users/profile` | - | নিজের প্রোফাইল ডেটা দেখা |
+| PATCH | `/users/profile` | `bio`, `avatarPosition`, `coverPosition` | প্রোফাইল আপডেট করা |
+| GET | `/users/:id` | `id` | নির্দিষ্ট ইউজারের প্রোফাইল দেখা |
+| POST | `/users/upload-avatar` | `file` (Multipart) | প্রোফাইল ছবি আপলোড |
+| POST | `/users/upload-cover` | `file` (Multipart) | কভার ছবি আপলোড |
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### চ্যাট ও মেসেজ (Chat & Messages)
+| Method | Endpoint | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| GET | `/messages/chats` | - | চ্যাট হিস্ট্রি এবং আনরিড কাউন্ট দেখা |
+| GET | `/messages/conversation/:userId`| `userId` | নির্দিষ্ট ইউজারের সাথে সব কনভারসেশন |
+| PATCH| `/messages/read/:senderId` | `senderId` | মেসেজগুলোকে 'Read' হিসেবে মার্ক করা |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### নোটিফিকেশন (Notifications)
+| Method | Endpoint | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| GET | `/notifications` | - | লেটেস্ট নোটিফিকেশন লিস্ট |
+| PATCH| `/notifications/:id/read` | `id` | নির্দিষ্ট নোটিফিকেশন পড়া হিসেবে মার্ক করা |
+| POST | `/notifications/read-all` | - | সব নোটিফিকেশন একসাথে পড়া |
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+### কমিউনিটি ফিড (Posts)
+| Method | Endpoint | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| GET | `/posts` | - | সব পোস্টের লিস্ট দেখা |
+| POST | `/posts` | `content`, `file` (Optional) | নতুন পোস্ট তৈরি করা |
+| POST | `/posts/:id/react` | `type` (LIKE/LOVE/DISLIKE) | পোস্টে রিঅ্যাকশন দেওয়া |
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## 🛠 টেক স্ট্যাক (Tech Stack)
+- **Frontend:** React.js, Tailwind CSS, Lucide Icons, Socket.io-client.
+- **Backend:** NestJS, Socket.io, JWT Authentication.
+- **Database:** PostgreSQL (Cloud Instance), Prisma ORM.
+- **Storage:** Cloudinary (Images).
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+এই প্রজেক্টটি আমার ফুল-স্ট্যাক স্কিল এবং জটিল সিস্টেম ডিজাইন করার ক্ষমতা প্রদর্শন করে।

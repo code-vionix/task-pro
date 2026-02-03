@@ -39,6 +39,20 @@ model User {
   lockoutUntil   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  bio            String?
+  avatarUrl      String?
+  coverImageUrl  String?
+  coverPosition  Json?
+  avatarPosition Json?
+  isOnline       Boolean   @default(false)
+  lastSeen       DateTime? @default(now())
+  posts          Post[]
+  comments       Comment[]
+  reactions      Reaction[]
+  sentMessages   Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  notifications  Notification[]
+  messageReactions MessageReaction[]
 }
 
 model Task {
@@ -53,13 +67,14 @@ model Task {
   duration    Int           @default(300) // Duration in seconds (default 5 mins)
   startedAt   DateTime?
   completedAt DateTime?
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
+  userId      String?
+  user        User?          @relation(fields: [userId], references: [id])
   subTasks    SubTask[]
   history     TaskHistory[]
   deletedAt   DateTime? // For soft delete
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  lastStoppedAt DateTime?
 }
 
 model SubTask {
@@ -89,5 +104,84 @@ model TaskHistory {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   action    String   // e.g., "UPDATE", "SOFT_DELETE"
   details   Json
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  content   String?
+  imageUrl  String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  comments  Comment[]
+  reactions Reaction[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ReactionType {
+  LIKE
+  DISLIKE
+  LOVE
+}
+
+model Reaction {
+  id        String       @id @default(uuid())
+  type      ReactionType
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  postId    String
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  isRead    Boolean  @default(false)
+  reactions MessageReaction[]
+  createdAt DateTime @default(now())
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  type      String   // LIKE, LOVE, HAHA, WOW, SAD, ANGRY
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, messageId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // MESSAGE, COMMENT, REACTION, TASK_ASSIGNED
+  message   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  data      Json?    // Optional data like link, postId, etc.
   createdAt DateTime @default(now())
 }

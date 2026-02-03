@@ -60,6 +60,15 @@ export default function MyTasks() {
     }
   };
 
+  const handleAssign = async (id: string) => {
+    try {
+        await api.patch(`/tasks/${id}/assign`);
+        fetchTasks();
+    } catch (e: any) {
+        alert(e.response?.data?.message || 'Failed to assign task');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-white/5">
@@ -108,7 +117,7 @@ export default function MyTasks() {
         ) : (
           <div className="divide-y divide-white/[0.05]">
             {tasks.map((task) => (
-              <TaskItem key={task.id} task={task} isAdmin={user?.role === 'ADMIN'} onStart={handleStart} onComplete={handleComplete} onStop={handleStop} onDelete={handleDelete} />
+              <TaskItem key={task.id} task={task} isAdmin={user?.role === 'ADMIN'} onStart={handleStart} onComplete={handleComplete} onStop={handleStop} onDelete={handleDelete} onAssign={handleAssign} />
             ))}
           </div>
         )}
