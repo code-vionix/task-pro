@@ -91,15 +91,17 @@ export default function Dashboard() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-             <button 
-                onClick={() => setShowCreateModal(true)}
-                className="premium-gradient text-white px-5 py-2.5 rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/20 hover:opacity-90 transition-all flex items-center gap-2"
-             >
-                 <Plus className="w-5 h-5" />
-                 <span>New Task</span>
-             </button>
-        </div>
+        {isAdmin && (
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={() => setShowCreateModal(true)}
+                    className="premium-gradient text-white px-5 py-2.5 rounded-xl font-bold hover:shadow-lg hover:shadow-blue-500/20 hover:opacity-90 transition-all flex items-center gap-2"
+                >
+                    <Plus className="w-5 h-5" />
+                    <span>New Task</span>
+                </button>
+            </div>
+        )}
       </div>
 
       {/* Stats Grid */}

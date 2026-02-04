@@ -1,5 +1,5 @@
 
-import { ChevronDown, ChevronUp, Image as ImageIcon, MessageCircle, MoreHorizontal, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Image as ImageIcon, MessageCircle, MoreHorizontal, Send, Share2, ThumbsDown, ThumbsUp, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -142,7 +142,19 @@ export default function Community() {
 function PostCard({ post, onUpdate, currentUser }) {
   const [comment, setComment] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [visibleComments, setVisibleComments] = useState(3);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+        if (menuRef.current && !menuRef.current.contains(event.target)) {
+            setShowMenu(false);
+        }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   const handleReaction = async (type) => {
       try {
@@ -207,7 +219,57 @@ function PostCard({ post, onUpdate, currentUser }) {
             </p>
           </div>
         </Link>
-        <button className="text-slate-500 hover:text-white"><MoreHorizontal className="w-5 h-5" /></button>
+        <div className="relative" ref={menuRef}>
+            <button 
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 text-slate-500 hover:text-[var(--foreground)] hover:bg-[var(--card-hover)] rounded-full transition-all"
+            >
+                <MoreHorizontal className="w-5 h-5" />
+            </button>
+
+            {showMenu && (
+                <div className="absolute right-0 mt-2 w-48 glass-card bg-[var(--background)] border border-[var(--border)] rounded-xl shadow-2xl py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {currentUser?.id === post.userId && (
+                        <>
+                            <button 
+                                onClick={() => {
+                                    setShowMenu(false);
+                                    const newContent = prompt('Edit your post', post.content);
+                                    if (newContent && newContent !== post.content) {
+                                        handleUpdatePost(newContent);
+                                    }
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+                            >
+                                <Edit2 className="w-4 h-4" /> Edit Post
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowMenu(false);
+                                    if (confirm('Are you sure you want to delete this post?')) {
+                                        handleDeletePost();
+                                    }
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-rose-500 hover:bg-rose-500/10 transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" /> Delete Post
+                            </button>
+                            <div className="my-1 border-t border-[var(--border)]"></div>
+                        </>
+                    )}
+                    <button 
+                        onClick={() => {
+                            setShowMenu(false);
+                            navigator.clipboard.writeText(`${window.location.origin}/community#post-${post.id}`);
+                            alert('Link copied to clipboard!');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--card-hover)] transition-colors"
+                    >
+                        <Share2 className="w-4 h-4" /> Share Link
+                    </button>
+                </div>
+            )}
+        </div>
       </div>
 
       {/* Content */}
@@ -241,32 +303,6 @@ function PostCard({ post, onUpdate, currentUser }) {
         </button>
       </div>
 
-      {/* Owner Actions */}
-      {currentUser?.id === post.userId && (
-          <div className="flex gap-2 p-2 px-4 border-t border-[var(--border)] justify-end">
-              <button 
-                onClick={() => {
-                    const newContent = prompt('Edit your post', post.content);
-                    if (newContent && newContent !== post.content) {
-                        handleUpdatePost(newContent);
-                    }
-                }}
-                className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                  Edit
-              </button>
-              <button 
-                onClick={() => {
-                    if (confirm('Are you sure you want to delete this post?')) {
-                        handleDeletePost();
-                    }
-                }}
-                className="text-xs font-bold text-rose-500 hover:text-rose-400 transition-colors"
-              >
-                  Delete
-              </button>
-          </div>
-      )}
 
       {/* Comments Section */}
       {showComments && (

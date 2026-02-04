@@ -242,17 +242,29 @@ export default function Profile() {
                  )}
             </div>
             
-            <div className="pb-20 flex-1">
-                 <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-1 flex items-center gap-3">
-                     {user.email.split('@')[0]}
-                     <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-lg uppercase tracking-widest font-bold border border-blue-500/30">
-                         {user.role}
-                     </span>
-                 </h1>
-                 <div className="flex items-center gap-4 text-[var(--muted)] text-sm font-medium">
-                     <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {user.email}</span>
-                     <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+            <div className="pb-20 flex-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                 <div>
+                    <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-1 flex items-center gap-3">
+                        {user.email.split('@')[0]}
+                        <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-lg uppercase tracking-widest font-bold border border-blue-500/30">
+                            {user.role}
+                        </span>
+                    </h1>
+                    <div className="flex items-center gap-4 text-[var(--muted)] text-sm font-medium">
+                        <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {user.email}</span>
+                        <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                    </div>
                  </div>
+
+                 {!isOwnProfile && (
+                     <button 
+                        onClick={() => navigate(`/chat?user=${user.id}`)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                     >
+                         <MessageSquare className="w-5 h-5" />
+                         Message
+                     </button>
+                 )}
             </div>
         </div>
       </div>
