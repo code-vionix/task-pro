@@ -301,30 +301,28 @@ export default function Chat() {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-black/5">
                     {messages.map((msg, idx) => {
                         const isMine = msg.senderId === currentUser?.id;
-                        const showAvatar = isMine && (idx === 0 || messages[idx - 1].senderId !== msg.senderId);
+                        const isLastInGroup = idx === messages.length - 1 || messages[idx + 1].senderId !== msg.senderId;
                         
                         return (
                             <div key={msg.id || idx} className={clsx("flex w-full gap-2", isMine ? "flex-row-reverse" : "flex-row")}>
-                                {/* Receiver Avatar */}
-                                {isMine && (
-                                    <div className="w-8 h-8 shrink-0 flex items-end">
-                                        {showAvatar ? (
-                                            <div className="w-8 h-8 rounded-full bg-[var(--card)] overflow-hidden border border-[var(--border)]">
-                                                {selectedUser.avatarUrl ? (
-                                            <img 
-                                                src={selectedUser.avatarUrl} 
-                                                className="w-full h-full object-cover" 
-                                                style={{ objectPosition: selectedUser.avatarPosition ? `${selectedUser.avatarPosition.x}% ${selectedUser.avatarPosition.y}%` : 'center' }}
-                                            />
-                                        ) : (
-                                            <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-[var(--foreground)] uppercase">
-                                                {selectedUser.email[0]}
-                                            </span>
-                                        )}
-                                            </div>
-                                        ) : <div className="w-8" />}
-                                    </div>
-                                )}
+                                {/* Avatar */}
+                                <div className="w-8 h-8 shrink-0 flex items-end">
+                                    {isLastInGroup ? (
+                                        <div className="w-8 h-8 rounded-full bg-[var(--card)] overflow-hidden border border-[var(--border)] shadow-sm">
+                                            {msg.sender.avatarUrl ? (
+                                                <img 
+                                                    src={msg.sender.avatarUrl} 
+                                                    className="w-full h-full object-cover" 
+                                                    style={{ objectPosition: msg.sender.avatarPosition ? `${msg.sender.avatarPosition.x}% ${msg.sender.avatarPosition.y}%` : 'center' }}
+                                                />
+                                            ) : (
+                                                <span className="w-full h-full flex items-center justify-center text-[10px] font-bold text-[var(--foreground)] uppercase">
+                                                    {(msg.sender.email || '?')[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : <div className="w-8" />}
+                                </div>
 
                                 <div className={clsx("flex flex-col max-w-[70%] group", isMine ? "items-end" : "items-start")}>
                                     <div className="relative">

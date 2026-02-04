@@ -90,9 +90,10 @@
   overflow: hidden;
 }
 
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -102,37 +103,59 @@
 ::-webkit-scrollbar-thumb {
   background-color: var(--border);
   border-radius: 9999px;
-  border: 4px solid var(--background);
+  border: 2px solid var(--background);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--muted);
 }
 
+/* Animations */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@utility skeleton {
+  background: linear-gradient(90deg, var(--card) 25%, var(--card-hover) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+@utility float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Mobile Responsiveness Improvements */
 @media (max-width: 640px) {
   html {
-    font-size: 14px; /* Global reduction for mobile */
+    font-size: 14px;
   }
 
   .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
-  /* Reduce generic padding and margins for mobile components */
-  .p-4 { padding: 0.75rem !important; }
-  .p-6 { padding: 1rem !important; }
-  .p-8 { padding: 1.5rem !important; }
-  
-  .m-4 { margin: 0.75rem !important; }
-  .m-6 { margin: 1rem !important; }
-  
-  .gap-4 { gap: 0.75rem !important; }
-  .gap-6 { gap: 1rem !important; }
-
   /* Specific text size reductions */
-  h1 { font-size: 1.5rem !important; }
-  h2 { font-size: 1.25rem !important; }
-  h3 { font-size: 1.125rem !important; }
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
 }
+
+/* Base fade-in for pages */
+.page-enter {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

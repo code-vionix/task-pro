@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PostCard } from '../components/PostCard';
+import { PostSkeleton } from '../components/PostSkeleton';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { compressImage } from '../lib/imageOptimizer';
 
 
 export default function Profile() {
@@ -34,7 +36,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
-    fetchUserPosts();
+    refreshUserPosts();
   }, [id]);
 
   const fetchProfile = async () => {
@@ -54,15 +56,57 @@ export default function Profile() {
     }
   };
 
-  const fetchUserPosts = async () => {
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [fetchingPosts, setFetchingPosts] = useState(false);
+  const observer = useRef();
+
+  const lastPostElementRef = (node) => {
+    if (fetchingPosts) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  };
+
+  const fetchUserPosts = async (pageNum, isInitial = false) => {
+      if (fetchingPosts) return;
+      const targetId = id || currentUser?.id;
+      if (!targetId) return;
+
+      setFetchingPosts(true);
       try {
-          const targetId = id || currentUser?.id;
-          if (!targetId) return;
-          const res = await api.get(`/posts/user/${targetId}`);
-          setPosts(res.data);
+          const res = await api.get(`/posts/user/${targetId}?page=${pageNum}&limit=10`);
+          const newPosts = res.data;
+          
+          if (isInitial) {
+              setPosts(newPosts);
+          } else {
+              setPosts(prev => {
+                  const ids = new Set(prev.map(p => p.id));
+                  return [...prev, ...newPosts.filter(p => !ids.has(p.id))];
+              });
+          }
+
+          if (newPosts.length < 10) setHasMore(false);
       } catch (err) {
           console.error('Failed to fetch user posts', err);
+      } finally {
+          setFetchingPosts(false);
       }
+  };
+
+  useEffect(() => {
+    if (page > 1) fetchUserPosts(page);
+  }, [page]);
+
+  const refreshUserPosts = () => {
+    setPage(1);
+    setHasMore(true);
+    fetchUserPosts(1, true);
   };
 
   const handleUpdate = async () => {
@@ -85,6 +129,13 @@ export default function Profile() {
 
     const setLoadingState = type === 'avatar' ? setUploadingAvatar : setUploadingCover;
     const endpoint = type === 'avatar' ? '/users/upload-avatar' : '/users/upload-cover';
+
+    try {
+        const compressed = await compressImage(file, 1500, 1500, 0.8);
+        formData.set('file', compressed);
+    } catch (err) {
+        console.error('Compression failed', err);
+    }
 
     setLoadingState(true);
     try {
@@ -328,15 +379,33 @@ export default function Profile() {
                        Timeline
                    </h2>
                    
-                   {posts.length === 0 ? (
+                   {posts.length === 0 && fetchingPosts ? (
+                        <div className="space-y-6">
+                            <PostSkeleton />
+                            <PostSkeleton />
+                            <PostSkeleton />
+                        </div>
+                   ) : posts.length === 0 && !fetchingPosts ? (
                         <div className="glass-card p-10 text-center">
                             <p className="text-[var(--muted)]">No posts to show yet.</p>
                         </div>
                    ) : (
                        <div className="space-y-6">
-                           {posts.map(post => (
-                               <PostCard key={post.id} post={post} onUpdate={fetchUserPosts} currentUser={currentUser} />
+                           {posts.map((post, index) => (
+                               <div ref={posts.length === index + 1 ? lastPostElementRef : null} key={post.id}>
+                                   <PostCard post={post} onUpdate={refreshUserPosts} currentUser={currentUser} />
+                               </div>
                            ))}
+                           
+                           {fetchingPosts && page > 1 && (
+                               <div className="space-y-6">
+                                   <PostSkeleton />
+                               </div>
+                           )}
+                           
+                           {!hasMore && posts.length > 0 && (
+                               <p className="text-center text-[var(--muted)] py-4 italic text-sm">End of timeline.</p>
+                           )}
                        </div>
                    )}
               </div>
