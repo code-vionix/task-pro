@@ -71,35 +71,35 @@ export default function MyTasks() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-white/5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border-main">
         <div>
-          <div className="flex items-center gap-3 mb-2 text-blue-400">
+          <div className="flex items-center gap-3 mb-2 text-primary-main">
             <LayoutDashboard className="w-5 h-5" />
             <span className="text-xs font-bold tracking-widest uppercase">Workspace</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-foreground-main tracking-tight">
              My Tasks
           </h1>
-          <p className="text-slate-400 mt-2 max-w-lg">
+          <p className="text-muted-main mt-2 max-w-lg">
              View and manage all your assigned tasks.
           </p>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white tracking-tight">All Tasks ({tasks.length})</h2>
+       <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-foreground-main tracking-tight">All Tasks ({tasks.length})</h2>
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-main" />
               <input 
                 type="text" 
                 placeholder="Search tasks..." 
-                className="bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all w-64"
+                className="bg-surface-main border border-border-main rounded-lg pl-10 pr-4 py-2 text-sm text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary-main/50 transition-all w-64"
               />
             </div>
-            <button className="p-2 glass rounded-lg hover:bg-white/10 transition-colors">
-              <Filter className="w-4 h-4 text-slate-400" />
+            <button className="p-2 glass rounded-lg hover:bg-surface-hover transition-colors">
+              <Filter className="w-4 h-4 text-muted-main" />
             </button>
           </div>
       </div>
@@ -108,14 +108,14 @@ export default function MyTasks() {
       <div className="glass-card overflow-hidden">
         {tasks.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-center px-4">
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-                <LayoutDashboard className="w-10 h-10 text-slate-600" />
+            <div className="w-20 h-20 rounded-full bg-surface-main flex items-center justify-center mb-6">
+                <LayoutDashboard className="w-10 h-10 text-muted-main" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No tasks found</h3>
-            <p className="text-slate-400">You don't have any tasks assigned yet.</p>
+            <h3 className="text-xl font-semibold text-foreground-main mb-2">No tasks found</h3>
+            <p className="text-muted-main">You don't have any tasks assigned yet.</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.05]">
+          <div className="divide-y divide-border-main">
             {tasks.map((task) => (
               <TaskItem key={task.id} task={task} isAdmin={user?.role === 'ADMIN'} onStart={handleStart} onComplete={handleComplete} onStop={handleStop} onDelete={handleDelete} onAssign={handleAssign} />
             ))}

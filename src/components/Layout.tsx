@@ -114,7 +114,7 @@ export default function Layout() {
 
         <div className="p-6 mt-auto border-t border-[var(--border)]">
           <div className="glass-card p-4 flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+            <div className="w-10 h-10 rounded-full bg-surface-main flex items-center justify-center border border-border-main overflow-hidden shrink-0">
                {user?.avatarUrl ? (
                  <img 
                     src={user.avatarUrl} 
@@ -122,7 +122,7 @@ export default function Layout() {
                     style={{ objectPosition: user.avatarPosition ? `${user.avatarPosition.x}% ${user.avatarPosition.y}%` : 'center' }}
                  />
                ) : (
-                 <span className="text-sm font-bold text-white">{user?.email[0].toUpperCase()}</span>
+                 <span className="text-sm font-bold text-foreground-main">{user?.email[0].toUpperCase()}</span>
                )}
             </div>
             <div className="flex-1 min-w-0">
@@ -133,7 +133,7 @@ export default function Layout() {
           
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-[var(--foreground)] hover:bg-white/5 rounded-xl transition-all border border-[var(--border)] mb-2 group"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-[var(--foreground)] hover:bg-[var(--card-hover)] rounded-xl transition-all border border-[var(--border)] mb-2 group"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-500 group-hover:rotate-45 transition-transform" /> : <Moon className="w-4 h-4 text-blue-500 group-hover:-rotate-12 transition-transform" />}
             <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
@@ -160,11 +160,11 @@ export default function Layout() {
            </div>
            <div className="flex items-center gap-4">
                <div className="relative">
-                  <button 
+                   <button 
                     onClick={() => setShowNotifications(!showNotifications)} 
                     className={clsx(
                         "p-2.5 glass-card rounded-xl transition-all relative group",
-                        showNotifications ? "bg-white/10 text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                        showNotifications ? "bg-[var(--primary)] text-white shadow-lg shadow-blue-500/20" : "text-[var(--muted)] hover:text-[var(--foreground)]"
                     )}
                    >
                       <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
@@ -177,7 +177,7 @@ export default function Layout() {
 
                    {showNotifications && (
                       <div className="absolute right-0 mt-4 w-80 glass-card bg-[var(--background)]/95 border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-                          <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-white/[0.02]">
+                          <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-[var(--foreground)]/[0.02]">
                               <h3 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest">Notifications</h3>
                               {unreadCount > 0 && (
                                   <button onClick={markAllAsRead} className="text-[10px] text-blue-500 hover:text-blue-400 font-bold uppercase tracking-tight">Mark all read</button>
@@ -193,8 +193,8 @@ export default function Layout() {
                                               key={n.id}
                                               onClick={() => handleNotificationClick(n)}
                                               className={clsx(
-                                                "w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3",
-                                                !n.isRead && "bg-blue-600/[0.03]"
+                                                "w-full p-4 text-left hover:bg-[var(--card-hover)] transition-colors flex gap-3",
+                                                !n.isRead && "bg-[var(--primary)]/[0.03]"
                                               )}
                                           >
                                               <div className={clsx(
@@ -244,8 +244,8 @@ function NavItem({ to, icon, label }: { to: string, icon: React.ReactNode, label
             className={clsx(
                 "w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
                 isActive 
-                  ? "bg-blue-600/10 text-[var(--foreground)] border border-blue-500/20" 
-                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/5 border border-transparent"
+                  ? "bg-[var(--primary)]/10 text-[var(--foreground)] border border-[var(--primary)]/20" 
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-hover)] border border-transparent"
             )}
         >
             {isActive && (

@@ -3,16 +3,16 @@ import { Lock, Save, Settings, User } from 'lucide-react';
 export default function Configuration() {
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-white/5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-border-main">
         <div>
-           <div className="flex items-center gap-3 mb-2 text-blue-400">
+           <div className="flex items-center gap-3 mb-2 text-primary-main">
             <Settings className="w-5 h-5" />
             <span className="text-xs font-bold tracking-widest uppercase">Settings</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-foreground-main tracking-tight">
              Configuration
           </h1>
-          <p className="text-slate-400 mt-2 max-w-lg">
+          <p className="text-muted-main mt-2 max-w-lg">
              Manage your profile settings and preferences.
           </p>
         </div>
@@ -26,25 +26,25 @@ export default function Configuration() {
                       <User className="w-6 h-6" />
                   </div>
                   <div>
-                      <h2 className="text-xl font-bold text-white">Profile Settings</h2>
-                      <p className="text-slate-400 text-sm">Update your personal information</p>
+                      <h2 className="text-xl font-bold text-foreground-main">Profile Settings</h2>
+                      <p className="text-muted-main text-sm">Update your personal information</p>
                   </div>
               </div>
               
               <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                       <div>
-                          <label className="block text-sm text-slate-400 mb-1">First Name</label>
-                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" defaultValue="John" />
+                          <label className="block text-sm text-muted-main mb-1">First Name</label>
+                          <input type="text" className="w-full bg-surface-main border border-border-main rounded-lg p-2.5 text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary-main/50" defaultValue="John" />
                       </div>
                       <div>
-                          <label className="block text-sm text-slate-400 mb-1">Last Name</label>
-                          <input type="text" className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" defaultValue="Doe" />
+                          <label className="block text-sm text-muted-main mb-1">Last Name</label>
+                          <input type="text" className="w-full bg-surface-main border border-border-main rounded-lg p-2.5 text-foreground-main focus:outline-none focus:ring-2 focus:ring-primary-main/50" defaultValue="Doe" />
                       </div>
                   </div>
                    <div>
-                      <label className="block text-sm text-slate-400 mb-1">Email Address</label>
-                      <input type="email" className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-slate-500 cursor-not-allowed" defaultValue="user@taskpro.com" disabled />
+                      <label className="block text-sm text-muted-main mb-1">Email Address</label>
+                      <input type="email" className="w-full bg-surface-main border border-border-main rounded-lg p-2.5 text-muted-main cursor-not-allowed" defaultValue="user@taskpro.com" disabled />
                   </div>
               </div>
           </section>
@@ -56,8 +56,8 @@ export default function Configuration() {
                       <Lock className="w-6 h-6" />
                   </div>
                    <div>
-                      <h2 className="text-xl font-bold text-white">Security</h2>
-                      <p className="text-slate-400 text-sm">Manage your password and security settings</p>
+                      <h2 className="text-xl font-bold text-foreground-main">Security</h2>
+                      <p className="text-muted-main text-sm">Manage your password and security settings</p>
                   </div>
               </div>
 

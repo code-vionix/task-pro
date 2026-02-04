@@ -71,7 +71,7 @@ export default function Login() {
 
       <div className="w-full max-w-md px-6 z-10 animate-in fade-in zoom-in duration-500">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-2xl premium-gradient flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20 ring-4 ring-white/5">
+          <div className="w-16 h-16 rounded-2xl premium-gradient flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20 ring-4 ring-[var(--foreground)]/5">
              <Shield className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-black text-[var(--foreground)] tracking-tight uppercase italic leading-none">

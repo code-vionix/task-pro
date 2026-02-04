@@ -48,6 +48,10 @@
   --color-accent-main: var(--accent);
   --color-background-main: var(--background);
   --color-surface-main: var(--card);
+  --color-surface-hover: var(--card-hover);
+  --color-foreground-main: var(--foreground);
+  --color-muted-main: var(--muted);
+  --color-border-main: var(--border);
   
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }

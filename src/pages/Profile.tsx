@@ -382,7 +382,7 @@ export default function Profile() {
             </div>
 
             <div className="glass-card border border-[var(--border)] overflow-hidden">
-                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-white/[0.02]">
+                <div className="p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--foreground)]/[0.02]">
                     <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tighter italic">Recent Transmissions</h3>
                     <div className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-[10px] font-black tracking-widest">ENCRYPTED</div>
                 </div>

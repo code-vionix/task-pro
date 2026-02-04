@@ -82,7 +82,7 @@ export default function Community() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-700">
-      <h1 className="text-3xl font-extrabold text-white tracking-tight">Community Feed</h1>
+      <h1 className="text-3xl font-extrabold text-[var(--foreground)] tracking-tight">Community Feed</h1>
       
       {/* Create Post Interface */}
       <div className="glass-card p-4 space-y-4">
@@ -90,19 +90,19 @@ export default function Community() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="What's on your mind?"
-          className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[100px] resize-none"
+          className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[100px] resize-none"
         />
         
         {imagePreview && (
             <div className="relative">
-                <img src={imagePreview} alt="Preview" className="max-h-60 rounded-lg border border-white/10" />
+                <img src={imagePreview} alt="Preview" className="max-h-60 rounded-lg border border-[var(--border)]" />
                 <button onClick={clearImage} className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white no-underline">
                     <X className="w-4 h-4" />
                 </button>
             </div>
         )}
 
-        <div className="flex justify-between items-center border-t border-white/5 pt-4">
+        <div className="flex justify-between items-center border-t border-[var(--border)] pt-4">
             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-bold">
                 <ImageIcon className="w-5 h-5" />
                 <span>Photo/Video</span>
@@ -169,9 +169,9 @@ function PostCard({ post, onUpdate, currentUser }: any) {
   return (
     <div className="glass-card overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="p-4 flex items-center justify-between border-b border-white/5">
+      <div className="p-4 flex items-center justify-between border-b border-[var(--border)]">
         <Link to={`/profile/${post.user.id}`} className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white font-bold border-2 border-transparent group-hover:border-blue-500 transition-all overflow-hidden shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[var(--card)] flex items-center justify-center text-[var(--foreground)] font-bold border-2 border-transparent group-hover:border-blue-500 transition-all overflow-hidden shrink-0">
             {post.user.avatarUrl ? (
                 <img 
                     src={post.user.avatarUrl} 
@@ -181,8 +181,8 @@ function PostCard({ post, onUpdate, currentUser }: any) {
             ) : post.user.email[0].toUpperCase()}
           </div>
           <div>
-            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{post.user.email.split('@')[0]}</h3>
-            <p className="text-xs text-slate-400">
+            <h3 className="font-bold text-[var(--foreground)] group-hover:text-blue-400 transition-colors">{post.user.email.split('@')[0]}</h3>
+            <p className="text-xs text-[var(--muted)]">
                 {new Date(post.createdAt).toLocaleDateString()} at {new Date(post.createdAt).toLocaleTimeString()}
             </p>
           </div>
@@ -192,14 +192,14 @@ function PostCard({ post, onUpdate, currentUser }: any) {
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        <p className="text-slate-200 whitespace-pre-wrap">{post.content}</p>
+        <p className="text-[var(--foreground)] opacity-90 whitespace-pre-wrap">{post.content}</p>
         {post.imageUrl && (
-            <img src={post.imageUrl} alt="Post content" className="w-full rounded-xl border border-white/5" />
+            <img src={post.imageUrl} alt="Post content" className="w-full rounded-xl border border-[var(--border)]" />
         )}
       </div>
 
       {/* Stats */}
-      <div className="px-4 py-2 flex items-center justify-between text-xs text-slate-500 border-t border-white/5">
+      <div className="px-4 py-2 flex items-center justify-between text-xs text-[var(--muted)] border-t border-[var(--border)]">
         <div className="flex gap-3">
             <span>{getReactionCount('LIKE')} Likes</span>
             <span>{getReactionCount('LOVE')} Loves</span>
@@ -211,11 +211,11 @@ function PostCard({ post, onUpdate, currentUser }: any) {
       </div>
 
       {/* Actions */}
-      <div className="grid grid-cols-4 gap-1 p-2 bg-white/[0.02]">
+      <div className="grid grid-cols-4 gap-1 p-2 bg-[var(--foreground)]/[0.02]">
         <ReactionButton active={myReaction === 'LIKE'} onClick={() => handleReaction('LIKE')} icon={<ThumbsUp className="w-5 h-5" />} label="Like" />
         <ReactionButton active={myReaction === 'LOVE'} onClick={() => handleReaction('LOVE')} icon={<span className="text-xl">❤️</span>} label="Love" color="text-rose-500" />
         <ReactionButton active={myReaction === 'DISLIKE'} onClick={() => handleReaction('DISLIKE')} icon={<ThumbsDown className="w-5 h-5" />} label="Dislike" />
-        <button onClick={() => setShowComments(!showComments)} className="flex items-center justify-center gap-2 py-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
+        <button onClick={() => setShowComments(!showComments)} className="flex items-center justify-center gap-2 py-2 hover:bg-[var(--card-hover)] rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
             <MessageCircle className="w-5 h-5" />
             <span className="font-semibold text-sm">Comment</span>
         </button>
@@ -223,7 +223,7 @@ function PostCard({ post, onUpdate, currentUser }: any) {
 
       {/* Comments Section */}
       {showComments && (
-        <div className="p-4 bg-black/20 border-t border-white/5 space-y-4">
+        <div className="p-4 bg-[var(--background)]/40 border-t border-[var(--border)] space-y-4">
             <div className="space-y-4">
                 {post.comments.filter((c: any) => !c.parentId).slice(0, visibleComments).map((c: any) => (
                     <CommentItem key={c.id} comment={c} postId={post.id} onReplySuccess={onUpdate} />
@@ -232,7 +232,7 @@ function PostCard({ post, onUpdate, currentUser }: any) {
                 {post.comments.filter((c: any) => !c.parentId).length > visibleComments && (
                     <button 
                         onClick={() => setVisibleComments(prev => prev + 5)}
-                        className="text-xs font-bold text-slate-500 hover:text-white w-full text-left pl-2"
+                        className="text-xs font-bold text-[var(--muted)] hover:text-[var(--foreground)] w-full text-left pl-2"
                     >
                         View {post.comments.filter((c: any) => !c.parentId).length - visibleComments} more comments...
                     </button>
@@ -244,7 +244,7 @@ function PostCard({ post, onUpdate, currentUser }: any) {
                     value={comment}
                     onChange={e => setComment(e.target.value)}
                     placeholder="Write a comment..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     onKeyDown={e => e.key === 'Enter' && submitComment()}
                 />
                 <button onClick={() => submitComment()} disabled={!comment.trim()} className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
@@ -261,7 +261,7 @@ function ReactionButton({ active, onClick, icon, label, color = "text-blue-500" 
     return (
         <button 
             onClick={onClick}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? `bg-white/10 ${color}` : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? `bg-[var(--foreground)]/10 ${color}` : 'text-[var(--muted)] hover:bg-[var(--card-hover)] hover:text-[var(--foreground)]'}`}
         >
             {icon}
             <span className={`font-semibold text-sm ${active ? color : ''}`}>{label}</span>
@@ -290,14 +290,14 @@ function CommentItem({ comment, postId, onReplySuccess }: any) {
     return (
         <div className="flex gap-3">
             <Link to={`/profile/${comment.user.id}`} className="shrink-0">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-blue-500/20 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-[var(--card)] flex items-center justify-center text-xs font-bold text-[var(--muted)] hover:bg-blue-500/20 transition-colors border border-[var(--border)]">
                     {comment.user.avatarUrl ? <img src={comment.user.avatarUrl} className="w-full h-full object-cover rounded-full" /> : comment.user.email[0].toUpperCase()}
                 </div>
             </Link>
             <div className="flex-1 space-y-1">
-                <div className="bg-white/5 p-3 rounded-2xl rounded-tl-none inline-block min-w-[200px]">
-                    <Link to={`/profile/${comment.user.id}`} className="text-xs font-bold text-slate-300 mb-1 block hover:text-blue-400 transition-colors">{comment.user.email.split('@')[0]}</Link>
-                    <p className="text-sm text-slate-200">{comment.content}</p>
+                <div className="bg-[var(--card)] p-3 rounded-2xl rounded-tl-none inline-block min-w-[200px] border border-[var(--border)]">
+                    <Link to={`/profile/${comment.user.id}`} className="text-xs font-bold text-[var(--muted)] mb-1 block hover:text-blue-400 transition-colors">{comment.user.email.split('@')[0]}</Link>
+                    <p className="text-sm text-[var(--foreground)] opacity-90">{comment.content}</p>
                 </div>
                 <div className="flex items-center gap-4 px-2">
                     <button onClick={() => setReplying(!replying)} className="text-xs font-bold text-slate-500 hover:text-blue-400">Reply</button>
@@ -326,7 +326,7 @@ function CommentItem({ comment, postId, onReplySuccess }: any) {
                             value={replyText}
                             autoFocus
                             onChange={e => setReplyText(e.target.value)}
-                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                            className="flex-1 bg-[var(--card)] border border-[var(--border)] rounded-lg px-2 py-1 text-xs text-[var(--foreground)]"
                             placeholder="Write a reply..."
                             onKeyDown={e => e.key === 'Enter' && handleReply()}
                         />
