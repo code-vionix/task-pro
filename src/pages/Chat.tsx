@@ -1,6 +1,6 @@
 
 import clsx from 'clsx';
-import { Check, CheckCheck, MessageSquare, Search, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, MessageSquare, Search, Send, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
