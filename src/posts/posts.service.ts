@@ -74,7 +74,11 @@ export class PostsService {
       include: {
         user: { select: { id: true, email: true, role: true, avatarUrl: true, avatarPosition: true } },
         _count: { select: { comments: true, shares: true } },
-        reactions: true,
+        reactions: {
+          include: {
+            user: { select: { id: true, email: true, avatarUrl: true } }
+          }
+        },
         sharedPost: {
             include: {
                 user: { select: { id: true, email: true, role: true, avatarUrl: true, avatarPosition: true } }
@@ -99,7 +103,11 @@ export class PostsService {
           include: {
               user: { select: { id: true, email: true, role: true, avatarUrl: true, avatarPosition: true } },
               _count: { select: { comments: true, shares: true } },
-              reactions: true,
+              reactions: {
+                  include: {
+                      user: { select: { id: true, email: true, avatarUrl: true } }
+                  }
+              },
               sharedPost: {
                   include: {
                       user: { select: { id: true, email: true, role: true, avatarUrl: true, avatarPosition: true } }
