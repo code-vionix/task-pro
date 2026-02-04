@@ -4,6 +4,7 @@ import { Calendar, Camera, CheckCircle, FileText, Loader2, Mail, MessageSquare, 
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
+import { PostCard } from '../components/PostCard';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 

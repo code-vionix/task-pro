@@ -270,10 +270,10 @@ function ReactionButton({ active, onClick, icon, label, color = "text-blue-500" 
     return (
         <button 
             onClick={onClick}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? \`bg-[var(--foreground)]/10 \${color}\` : "bg-transparent text-[var(--muted)] hover:bg-[var(--card-hover)] hover:text-[var(--foreground)]"}`}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? `bg-[var(--foreground)]/10 ${color}` : "bg-transparent text-[var(--muted)] hover:bg-[var(--card-hover)] hover:text-[var(--foreground)]"}`}
         >
             {icon}
-            <span className={`font-semibold text-sm \${active ? color : "text-[var(--muted)] group-hover:text-[var(--foreground)]"}`}>{label}</span>
+            <span className={`font-semibold text-sm ${active ? color : "text-[var(--muted)] group-hover:text-[var(--foreground)]"}`}>{label}</span>
         </button>
     )
 }
@@ -286,7 +286,7 @@ function CommentItem({ comment, postId, onReplySuccess }) {
     const handleReply = async () => {
         if (!replyText.trim()) return;
         try {
-            await api.post(\`/posts/\${postId}/comment\`, { content: replyText, parentId: comment.id });
+            await api.post(`/posts/${postId}/comment`, { content: replyText, parentId: comment.id });
             setReplyText('');
             setReplying(false);
             setShowReplies(true); // Auto expand on reply
@@ -298,14 +298,14 @@ function CommentItem({ comment, postId, onReplySuccess }) {
 
     return (
         <div className="flex gap-3">
-            <Link to={`/profile/\${comment.user.id}`} className="shrink-0">
+            <Link to={`/profile/${comment.user.id}`} className="shrink-0">
                 <div className="w-8 h-8 rounded-full bg-[var(--card)] flex items-center justify-center text-xs font-bold text-[var(--muted)] hover:bg-blue-500/20 transition-colors border border-[var(--border)]">
                     {comment.user.avatarUrl ? <img src={comment.user.avatarUrl} className="w-full h-full object-cover rounded-full" /> : comment.user.email[0].toUpperCase()}
                 </div>
             </Link>
             <div className="flex-1 space-y-1">
                 <div className="bg-[var(--card)] p-3 rounded-2xl rounded-tl-none inline-block min-w-[200px] border border-[var(--border)]">
-                    <Link to={`/profile/\${comment.user.id}`} className="text-xs font-bold text-[var(--muted)] mb-1 block hover:text-blue-400 transition-colors">{comment.user.email.split('@')[0]}</Link>
+                    <Link to={`/profile/${comment.user.id}`} className="text-xs font-bold text-[var(--muted)] mb-1 block hover:text-blue-400 transition-colors">{comment.user.email.split('@')[0]}</Link>
                     <p className="text-sm text-[var(--foreground)] opacity-90">{comment.content}</p>
                 </div>
                 <div className="flex items-center gap-4 px-2">
