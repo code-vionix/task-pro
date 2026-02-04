@@ -7,11 +7,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 
+
 export default function Profile() {
   const { id } = useParams();
   const { user: currentUser, updateUserInfo } = useAuth();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile();
+    fetchUserPosts();
   }, [id]);
 
   const fetchProfile = async () => {
@@ -41,13 +44,24 @@ export default function Profile() {
       setUser(res.data);
       setBio(res.data.bio || '');
       if (isOwnProfile) {
-          updateUserInfo({ avatarUrl: res.data.avatarUrl });
+          updateUserInfo({ avatarUrl: res.data.avatarUrl, avatarPosition: res.data.avatarPosition });
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchUserPosts = async () => {
+      try {
+          const targetId = id || currentUser?.id;
+          if (!targetId) return;
+          const res = await api.get(`/posts/user/${targetId}`);
+          setPosts(res.data);
+      } catch (err) {
+          console.error('Failed to fetch user posts', err);
+      }
   };
 
   const handleUpdate = async () => {
@@ -306,18 +320,24 @@ export default function Profile() {
                   )}
               </div>
 
-              {/* Activity Feed (Placeholder) */}
-              <div className="glass-card p-8">
-                   <h2 className="text-xl font-bold text-[var(--foreground)] mb-6 flex items-center gap-3">
+              {/* Activity Feed */}
+              <div className="space-y-6">
+                   <h2 className="text-xl font-bold text-[var(--foreground)] mb-2 flex items-center gap-3">
                        <MessageSquare className="w-6 h-6 text-blue-400" />
-                       Recent Activity
+                       Timeline
                    </h2>
-                   <div className="text-center py-10">
-                       <div className="w-16 h-16 bg-[var(--card)] rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--border)]">
-                           <Loader2 className="w-8 h-8 text-[var(--muted)] animate-spin-slow" />
+                   
+                   {posts.length === 0 ? (
+                        <div className="glass-card p-10 text-center">
+                            <p className="text-[var(--muted)]">No posts to show yet.</p>
+                        </div>
+                   ) : (
+                       <div className="space-y-6">
+                           {posts.map(post => (
+                               <PostCard key={post.id} post={post} onUpdate={fetchUserPosts} currentUser={currentUser} />
+                           ))}
                        </div>
-                       <p className="text-[var(--muted)] text-sm">Synchronizing timeline data...</p>
-                   </div>
+                   )}
               </div>
           </div>
 
