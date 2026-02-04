@@ -1,3 +1,4 @@
+
 import { ChevronDown, ChevronUp, Image as ImageIcon, MessageCircle, MoreHorizontal, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -6,12 +7,12 @@ import api from '../lib/api';
 
 export default function Community() {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState([]);
   const [content, setContent] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchPosts();
@@ -43,7 +44,7 @@ export default function Community() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e) => {
       const file = e.target.files?.[0];
       if (file) {
           setImageFile(file);
@@ -138,21 +139,22 @@ export default function Community() {
   );
 }
 
-function PostCard({ post, onUpdate, currentUser }: any) {
+function PostCard({ post, onUpdate, currentUser }) {
   const [comment, setComment] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [visibleComments, setVisibleComments] = useState(3);
   
-  const handleReaction = async (type: 'LIKE' | 'DISLIKE' | 'LOVE') => {
+  const handleReaction = async (type) => {
       try {
           await api.post(`/posts/${post.id}/react`, { type });
           onUpdate(); 
       } catch (err) {
-          alert('Reaction failed');
+          console.error(err);
+          // alert('Reaction failed');
       }
   };
 
-  const submitComment = async (parentId?: string) => {
+  const submitComment = async (parentId) => {
       if (!comment.trim() && !parentId) return;
       try {
           await api.post(`/posts/${post.id}/comment`, { content: comment, parentId });
@@ -172,7 +174,7 @@ function PostCard({ post, onUpdate, currentUser }: any) {
     }
   };
 
-  const handleUpdatePost = async (newContent: string) => {
+  const handleUpdatePost = async (newContent) => {
     try {
         await api.patch(`/posts/${post.id}`, { content: newContent });
         onUpdate();
@@ -181,8 +183,8 @@ function PostCard({ post, onUpdate, currentUser }: any) {
     }
   };
 
-  const getReactionCount = (type: string) => post.reactions.filter((r: any) => r.type === type).length;
-  const myReaction = post.reactions.find((r: any) => r.userId === currentUser?.id)?.type;
+  const getReactionCount = (type) => post.reactions.filter((r) => r.type === type).length;
+  const myReaction = post.reactions.find((r) => r.userId === currentUser?.id)?.type;
 
   return (
     <div className="glass-card overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
@@ -244,8 +246,8 @@ function PostCard({ post, onUpdate, currentUser }: any) {
           <div className="flex gap-2 p-2 px-4 border-t border-[var(--border)] justify-end">
               <button 
                 onClick={() => {
-                    const newContent = prompt('Edit your post:', post.content);
-                    if (newContent !== null && newContent !== post.content) {
+                    const newContent = prompt('Edit your post', post.content);
+                    if (newContent && newContent !== post.content) {
                         handleUpdatePost(newContent);
                     }
                 }}
@@ -270,16 +272,16 @@ function PostCard({ post, onUpdate, currentUser }: any) {
       {showComments && (
         <div className="p-4 bg-[var(--background)]/40 border-t border-[var(--border)] space-y-4">
             <div className="space-y-4">
-                {post.comments.filter((c: any) => !c.parentId).slice(0, visibleComments).map((c: any) => (
+                {post.comments.filter((c) => !c.parentId).slice(0, visibleComments).map((c) => (
                     <CommentItem key={c.id} comment={c} postId={post.id} onReplySuccess={onUpdate} />
                 ))}
                 
-                {post.comments.filter((c: any) => !c.parentId).length > visibleComments && (
+                {post.comments.filter((c) => !c.parentId).length > visibleComments && (
                     <button 
                         onClick={() => setVisibleComments(prev => prev + 5)}
                         className="text-xs font-bold text-[var(--muted)] hover:text-[var(--foreground)] w-full text-left pl-2"
                     >
-                        View {post.comments.filter((c: any) => !c.parentId).length - visibleComments} more comments...
+                        View {post.comments.filter((c) => !c.parentId).length - visibleComments} more comments...
                     </button>
                 )}
             </div>
@@ -302,19 +304,19 @@ function PostCard({ post, onUpdate, currentUser }: any) {
   );
 }
 
-function ReactionButton({ active, onClick, icon, label, color = "text-blue-500" }: any) {
+function ReactionButton({ active, onClick, icon, label, color = "text-blue-500" }) {
     return (
         <button 
             onClick={onClick}
-            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? `bg-[var(--foreground)]/10 ${color}` : 'text-[var(--muted)] hover:bg-[var(--card-hover)] hover:text-[var(--foreground)]'}`}
+            className={`flex items-center justify-center gap-2 py-2 rounded-lg transition-colors ${active ? `bg-[var(--foreground)]/10 ${color}` : "bg-transparent text-[var(--muted)] hover:bg-[var(--card-hover)] hover:text-[var(--foreground)]"}`}
         >
             {icon}
-            <span className={`font-semibold text-sm ${active ? color : ''}`}>{label}</span>
+            <span className={`font-semibold text-sm ${active ? color : "text-[var(--muted)] group-hover:text-[var(--foreground)]"}`}>{label}</span>
         </button>
     )
 }
 
-function CommentItem({ comment, postId, onReplySuccess }: any) {
+function CommentItem({ comment, postId, onReplySuccess }) {
     const [replying, setReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(false);
     const [replyText, setReplyText] = useState('');
@@ -358,7 +360,7 @@ function CommentItem({ comment, postId, onReplySuccess }: any) {
                 {/* Nested Replies */}
                 {showReplies && comment.replies && comment.replies.length > 0 && (
                     <div className="pl-4 space-y-2 mt-2 border-l-2 border-white/5 animate-in slide-in-from-top-2">
-                         {comment.replies.map((reply: any) => (
+                         {comment.replies.map((reply) => (
                              <CommentItem key={reply.id} comment={reply} postId={postId} onReplySuccess={onReplySuccess} />
                          ))}
                     </div>

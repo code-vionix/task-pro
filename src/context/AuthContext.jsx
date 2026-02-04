@@ -1,27 +1,10 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
-interface User {
-  id: string;
-  email: string;
-  role: 'ADMIN' | 'USER';
-  avatarUrl?: string;
-  avatarPosition?: { x: number; y: number };
-  coverPosition?: { x: number; y: number };
-}
+const AuthContext = createContext(undefined);
 
-interface AuthContextType {
-  user: User | null;
-  login: (token: string, refreshToken: string, userData: User) => void;
-  logout: () => void;
-  updateUserInfo: (userData: Partial<User>) => void;
-  isLoading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,14 +12,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (token: string, refreshToken: string, userData: User) => {
+  const login = (token, refreshToken, userData) => {
     localStorage.setItem('access_token', token);
     localStorage.setItem('refresh_token', refreshToken);
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const updateUserInfo = (userData: Partial<User>) => {
+  const updateUserInfo = (userData) => {
     setUser(prev => {
         if (!prev) return null;
         const updated = { ...prev, ...userData };

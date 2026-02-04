@@ -1,5 +1,5 @@
 
-import React from 'react';
+
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
@@ -15,14 +15,14 @@ import MyTasks from './pages/MyTasks';
 import Profile from './pages/Profile';
 import SystemControl from './pages/SystemControl';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 }
 
-function ErrorFallback({ error, resetErrorBoundary }: any) {
+function ErrorFallback({ error, resetErrorBoundary }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
       <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl max-w-md w-full">
@@ -72,3 +72,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
+
+

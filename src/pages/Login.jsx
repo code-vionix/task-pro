@@ -1,6 +1,7 @@
+
 import clsx from 'clsx';
 import { Lock, LogIn, Mail, Shield, UserPlus } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
@@ -15,7 +16,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!error) return;
+    if (error) return;
 
     const match = error.match(/Try again in (\d+) seconds/);
     if (match) {
@@ -31,7 +32,7 @@ export default function Login() {
     }
   }, [error]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -39,7 +40,7 @@ export default function Login() {
       if (isRegister) {
         await api.post('/auth/register', { email, password });
         setIsRegister(false);
-        setError('Registration successful! Please login.');
+        setError('Registration successful. Please login.');
       } else {
         const res = await api.post('/auth/login', { email, password });
         const { access_token, refresh_token } = res.data;
@@ -53,7 +54,7 @@ export default function Login() {
         login(access_token, refresh_token, { id: payload.sub, email: payload.username, role: payload.role });
         navigate('/');
       }
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -85,10 +86,10 @@ export default function Login() {
           
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">
-              {isRegister ? 'Initialize Access' : 'Secure Terminal'}
+              {isRegister ? 'Initialize Access' : 'Authentication'}
             </h2>
             <p className="text-[var(--muted)] text-sm">
-              {isRegister ? 'Construct your authorized identity.' : 'Provide your encrypted credentials.'}
+              {isRegister ? 'Construct your authorized identity.' : 'Enter your credentials to proceed.'}
             </p>
           </div>
           
@@ -143,7 +144,7 @@ export default function Login() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  <span>{isRegister ? 'Authorize Account' : 'Authenticate Access'}</span>
+                  <span>{isRegister ? 'Authorize Account' : 'Authenticate'}</span>
                   {isRegister ? <UserPlus className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> : <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </>
               )}
@@ -155,7 +156,7 @@ export default function Login() {
               onClick={() => setIsRegister(!isRegister)}
               className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs font-bold tracking-wide transition-colors uppercase"
             >
-              {isRegister ? 'Return to Primary Terminal' : "Initiate New Account Protocol"}
+              {isRegister ? 'Return to Primary Terminal' : 'Initialize New Identity'}
             </button>
           </div>
         </div>

@@ -14,9 +14,9 @@ api.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -88,3 +88,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
