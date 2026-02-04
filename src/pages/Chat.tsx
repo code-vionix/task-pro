@@ -1,6 +1,6 @@
 
 import clsx from 'clsx';
-import { Check, CheckCheck, MessageSquare, Search, Send } from 'lucide-react';
+import { Check, CheckCheck, MessageSquare, Search, Send, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
@@ -17,6 +17,7 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +65,11 @@ export default function Chat() {
         if (selectedUser?.id === userId) {
             setSelectedUser((prev: any) => prev ? { ...prev, isOnline, lastSeen: new Date() } : null);
         }
+    });
+
+    newSocket.on('messageDeleted', ({ messageId }) => {
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        fetchChats();
     });
 
     return () => {
@@ -149,6 +155,10 @@ export default function Chat() {
       setChats(prev => prev.map(c => c.id === user.id ? { ...c, unreadCount: 0 } : c));
       socket?.emit('markAsRead', { senderId: user.id, userId: currentUser?.id });
       api.patch(`/messages/read/${user.id}`);
+      // Hide sidebar on mobile when a chat is selected
+      if (window.innerWidth < 768) {
+          setShowSidebar(false);
+      }
   };
 
   const handleReact = (messageId: string, type: string) => {
@@ -167,10 +177,23 @@ export default function Chat() {
       ));
   };
 
+  const handleDeleteMessage = (messageId: string) => {
+      if (!socket || !selectedUser) return;
+      if (confirm('Unsend this message?')) {
+          socket.emit('deleteMessage', { messageId, userId: currentUser?.id, receiverId: selectedUser.id });
+          // Update locally
+          setMessages(prev => prev.filter(m => m.id !== messageId));
+          fetchChats();
+      }
+  };
+
   return (
-    <div className="h-[calc(100vh-160px)] flex border border-border-main glass rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-500">
+    <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-160px)] flex border border-border-main glass rounded-xl md:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-500">
       {/* Sidebar: Recent Chats */}
-      <div className="w-80 border-r border-border-main flex flex-col bg-background-main/30">
+      <div className={clsx(
+          "w-full md:w-80 border-r border-border-main flex flex-col bg-background-main/30 transition-all duration-300",
+          !showSidebar && "hidden md:flex"
+      )}>
         <div className="p-6 border-b border-border-main">
             <h2 className="text-xl font-black text-foreground-main italic tracking-tight mb-4 uppercase">Direct Messages</h2>
             <div className="relative">
@@ -232,12 +255,21 @@ export default function Chat() {
       </div>
 
       {/* Main: Active Conversation */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div className={clsx(
+          "flex-1 flex flex-col relative overflow-hidden transition-all duration-300",
+          showSidebar && "hidden md:flex"
+      )}>
         {selectedUser ? (
             <>
                 {/* Header */}
-                <div className="h-20 px-8 flex items-center justify-between border-b border-border-main bg-background-main/40">
-                    <div className="flex items-center gap-4">
+                <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-border-main bg-background-main/40">
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <button 
+                            onClick={() => setShowSidebar(true)}
+                            className="md:hidden p-2 -ml-2 text-muted-main hover:text-foreground-main"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
                         <div className="relative">
                             <div className="w-10 h-10 rounded-full bg-surface-main flex items-center justify-center text-foreground-main font-bold border border-border-main overflow-hidden shrink-0">
                                 {selectedUser.avatarUrl ? (
@@ -343,6 +375,15 @@ export default function Chat() {
                                             msg.isRead 
                                                 ? <CheckCheck className="w-3 h-3 text-emerald-500" /> 
                                                 : <Check className="w-3 h-3" />
+                                        )}
+                                        {isMine && (
+                                            <button 
+                                                onClick={() => handleDeleteMessage(msg.id)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-rose-500 hover:text-rose-400"
+                                                title="Unsend"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
                                         )}
                                     </div>
                                 </div>

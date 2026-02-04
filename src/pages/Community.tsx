@@ -163,6 +163,24 @@ function PostCard({ post, onUpdate, currentUser }: any) {
       }
   };
 
+  const handleDeletePost = async () => {
+    try {
+        await api.delete(`/posts/${post.id}`);
+        onUpdate();
+    } catch (err) {
+        alert('Failed to delete post');
+    }
+  };
+
+  const handleUpdatePost = async (newContent: string) => {
+    try {
+        await api.patch(`/posts/${post.id}`, { content: newContent });
+        onUpdate();
+    } catch (err) {
+        alert('Failed to update post');
+    }
+  };
+
   const getReactionCount = (type: string) => post.reactions.filter((r: any) => r.type === type).length;
   const myReaction = post.reactions.find((r: any) => r.userId === currentUser?.id)?.type;
 
@@ -220,6 +238,33 @@ function PostCard({ post, onUpdate, currentUser }: any) {
             <span className="font-semibold text-sm">Comment</span>
         </button>
       </div>
+
+      {/* Owner Actions */}
+      {currentUser?.id === post.userId && (
+          <div className="flex gap-2 p-2 px-4 border-t border-[var(--border)] justify-end">
+              <button 
+                onClick={() => {
+                    const newContent = prompt('Edit your post:', post.content);
+                    if (newContent !== null && newContent !== post.content) {
+                        handleUpdatePost(newContent);
+                    }
+                }}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                  Edit
+              </button>
+              <button 
+                onClick={() => {
+                    if (confirm('Are you sure you want to delete this post?')) {
+                        handleDeletePost();
+                    }
+                }}
+                className="text-xs font-bold text-rose-500 hover:text-rose-400 transition-colors"
+              >
+                  Delete
+              </button>
+          </div>
+      )}
 
       {/* Comments Section */}
       {showComments && (

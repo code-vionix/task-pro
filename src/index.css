@@ -108,3 +108,31 @@
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--muted);
 }
+
+/* Mobile Responsiveness Improvements */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px; /* Global reduction for mobile */
+  }
+
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Reduce generic padding and margins for mobile components */
+  .p-4 { padding: 0.75rem !important; }
+  .p-6 { padding: 1rem !important; }
+  .p-8 { padding: 1.5rem !important; }
+  
+  .m-4 { margin: 0.75rem !important; }
+  .m-6 { margin: 1rem !important; }
+  
+  .gap-4 { gap: 0.75rem !important; }
+  .gap-6 { gap: 1rem !important; }
+
+  /* Specific text size reductions */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.125rem !important; }
+}
