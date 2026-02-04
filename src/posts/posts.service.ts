@@ -118,7 +118,41 @@ export class PostsService {
       return comment;
   }
 
-  remove(id: string) {
+  async update(id: string, userId: string, updatePostDto: any) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: { user: true }
+    });
+
+    if (!post) throw new NotFoundException('Post not found');
+    
+    // Only owner can update
+    if (post.userId !== userId) {
+      throw new Error('You are not authorized to update this post');
+    }
+
+    return this.prisma.post.update({
+      where: { id },
+      data: {
+        content: updatePostDto.content,
+        imageUrl: updatePostDto.imageUrl,
+      },
+      include: { user: { select: { id: true, email: true, role: true } } }
+    });
+  }
+
+  async remove(id: string, userId: string, userRole: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+    });
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    // Only owner or admin can delete
+    if (post.userId !== userId && userRole !== 'ADMIN') {
+      throw new Error('You are not authorized to delete this post');
+    }
+
     return this.prisma.post.delete({ where: { id } });
   }
 }

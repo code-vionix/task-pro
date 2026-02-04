@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReactionType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -38,8 +38,13 @@ export class PostsController {
       return this.postsService.addComment(req.user.userId, id, content, parentId);
   }
 
+  @Patch(':id')
+  async update(@Request() req, @Param('id') id: string, @Body() updatePostDto: any) {
+    return this.postsService.update(id, req.user.userId, updatePostDto);
+  }
+
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postsService.remove(id); // Access control can be added (e.g. only owner or admin)
+  remove(@Request() req, @Param('id') id: string) {
+    return this.postsService.remove(id, req.user.userId, req.user.role);
   }
 }

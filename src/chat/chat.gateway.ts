@@ -137,4 +137,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Notify original sender room
     this.server.to(`user_${senderId}`).emit('messagesRead', { readerId: userId });
   }
+
+  @SubscribeMessage('deleteMessage')
+  async handleDeleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { messageId: string; userId: string; receiverId: string },
+  ) {
+    const { messageId, userId, receiverId } = data;
+
+    // Check ownership and delete
+    const message = await this.prisma.message.findUnique({ where: { id: messageId } });
+    if (message && message.senderId === userId) {
+      await this.prisma.message.delete({ where: { id: messageId } });
+      
+      // Notify both sender and receiver
+      this.server.to(`user_${userId}`).emit('messageDeleted', { messageId });
+      this.server.to(`user_${receiverId}`).emit('messageDeleted', { messageId });
+    }
+  }
 }

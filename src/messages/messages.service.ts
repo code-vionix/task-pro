@@ -74,4 +74,19 @@ export class MessagesService {
       data: { isRead: true },
     });
   }
+
+  async remove(id: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id },
+    });
+
+    if (!message) throw new Error('Message not found');
+
+    // Only sender can delete/unsend
+    if (message.senderId !== userId) {
+      throw new Error('You are not authorized to delete this message');
+    }
+
+    return this.prisma.message.delete({ where: { id } });
+  }
 }

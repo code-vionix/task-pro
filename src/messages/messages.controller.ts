@@ -1,5 +1,5 @@
 
-import { Controller, Get, Param, Patch, Request, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MessagesService } from './messages.service';
 
@@ -21,5 +21,10 @@ export class MessagesController {
   @Patch('read/:senderId')
   markAsRead(@Request() req, @Param('senderId') senderId: string) {
     return this.messagesService.markAsRead(req.user.userId, senderId);
+  }
+
+  @Delete(':id')
+  remove(@Request() req, @Param('id') id: string) {
+    return this.messagesService.remove(id, req.user.userId);
   }
 }
