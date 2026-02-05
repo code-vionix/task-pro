@@ -1,5 +1,4 @@
 
-
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
@@ -14,6 +13,7 @@ import Login from './pages/Login';
 import MyTasks from './pages/MyTasks';
 import Profile from './pages/Profile';
 import SystemControl from './pages/SystemControl';
+import VerifyOtp from './pages/VerifyOtp';
 
 function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
@@ -51,6 +51,7 @@ export default function App() {
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Layout />
@@ -72,6 +73,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-
-

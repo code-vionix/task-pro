@@ -1,6 +1,6 @@
 
 import clsx from 'clsx';
-import { Calendar, Camera, CheckCircle, FileText, Loader2, Mail, MessageSquare, Move, Save } from 'lucide-react';
+import { BookOpen, Calendar, Camera, CheckCircle, FileText, Loader2, Mail, MapPin, MessageSquare, Move, Save, User as UserIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -9,7 +9,6 @@ import { PostSkeleton } from '../components/PostSkeleton';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { compressImage } from '../lib/imageOptimizer';
-
 
 export default function Profile() {
   const { id } = useParams();
@@ -47,7 +46,7 @@ export default function Profile() {
       setUser(res.data);
       setBio(res.data.bio || '');
       if (isOwnProfile) {
-          updateUserInfo({ avatarUrl: res.data.avatarUrl, avatarPosition: res.data.avatarPosition });
+          updateUserInfo(res.data);
       }
     } catch (err) {
       console.error(err);
@@ -277,18 +276,18 @@ export default function Profile() {
                          />
                     ) : (
                          <div className="w-full h-full flex items-center justify-center bg-[var(--card)] text-[var(--foreground)] text-4xl font-black">
-                             {user.email[0].toUpperCase()}
+                             {(user.name?.[0] || user.email[0]).toUpperCase()}
                          </div>
                     )}
 
                      {isOwnProfile && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px]">
                              {repositionMode === 'avatar' ? (
-                                 <Move className="w-8 h-8 text-white animate-pulse" />
+                                  <Move className="w-8 h-8 text-white animate-pulse" />
                              ) : (
-                                 <button onClick={() => avatarInputRef.current?.click()} className="text-white hover:scale-110 transition-transform">
-                                     {uploadingAvatar ? <Loader2 className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
-                                 </button>
+                                  <button onClick={() => avatarInputRef.current?.click()} className="text-white hover:scale-110 transition-transform">
+                                      {uploadingAvatar ? <Loader2 className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
+                                  </button>
                              )}
                         </div>
                      )}
@@ -311,13 +310,15 @@ export default function Profile() {
             <div className="pb-20 flex-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                  <div>
                     <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-1 flex items-center gap-3">
-                        {user.email.split('@')[0]}
+                        {user.name || user.email.split('@')[0]}
                         <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-lg uppercase tracking-widest font-bold border border-blue-500/30">
                             {user.role}
                         </span>
                     </h1>
-                    <div className="flex items-center gap-4 text-[var(--muted)] text-sm font-medium">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[var(--muted)] text-sm font-medium">
                         <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {user.email}</span>
+                        {user.address && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {user.address}</span>}
+                        {user.education && <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {user.education}</span>}
                         <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
                     </div>
                  </div>
@@ -412,9 +413,37 @@ export default function Profile() {
           </div>
 
           <div className="space-y-6">
-              {/* Stats / Sidebar */}
+              {/* Profile Details Sidebar */}
               <div className="glass-card p-6 space-y-6">
-                  <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest">Performance Metrics</h3>
+                  <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
+                      <UserIcon className="w-3 h-3" /> User Dossier
+                  </h3>
+                  
+                  <div className="space-y-4">
+                      {user.address && (
+                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
+                              <span className="text-[10px] uppercase font-black text-blue-500 tracking-widest">Location</span>
+                              <span className="text-sm font-medium text-[var(--foreground)]">{user.address}</span>
+                          </div>
+                      )}
+                      {user.education && (
+                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
+                              <span className="text-[10px] uppercase font-black text-purple-500 tracking-widest">Education</span>
+                              <span className="text-sm font-medium text-[var(--foreground)]">{user.education}</span>
+                          </div>
+                      )}
+                      <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
+                          <span className="text-[10px] uppercase font-black text-emerald-500 tracking-widest">Joined On</span>
+                          <span className="text-sm font-medium text-[var(--foreground)]">{new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Performance Metrics */}
+              <div className="glass-card p-6 space-y-6">
+                  <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
+                      Performance Metrics
+                  </h3>
                   
                   <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">

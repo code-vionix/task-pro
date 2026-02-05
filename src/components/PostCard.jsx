@@ -231,18 +231,27 @@ export function PostCard({ post, onUpdate, currentUser }) {
       <div className="p-4 space-y-4">
         {post.content && <p className="text-[var(--foreground)] opacity-90 whitespace-pre-wrap leading-relaxed">{post.content}</p>}
         {post.imageUrl && (
-            <div className={`relative rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--card)] transition-all duration-700 ${imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className={`relative rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--card)] group/img`}>
+                <div className={clsx(
+                    "absolute inset-0 skeleton flex items-center justify-center bg-[var(--card-hover)] z-0 transition-opacity duration-1000",
+                    imageLoaded ? "opacity-0 invisible" : "opacity-100 visible"
+                )}>
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500/20" />
+                </div>
                 <img 
                     src={post.imageUrl} 
                     alt="Post content" 
-                    className="w-full h-auto object-cover max-h-[500px]" 
+                    className={clsx(
+                        "w-full h-auto object-cover max-h-[600px] transition-all duration-1000 ease-out",
+                        imageLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-[1.02] blur-xl"
+                    )} 
                     onLoad={() => setImageLoaded(true)}
                     loading="lazy"
                 />
-                {!imageLoaded && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-blue-500/50" />
-                    </div>
+                
+                {/* Subtle overlay on hover */}
+                {imageLoaded && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 )}
             </div>
         )}

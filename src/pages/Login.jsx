@@ -1,33 +1,31 @@
 
-import clsx from 'clsx';
-import { Lock, LogIn, Mail, Shield, UserPlus } from 'lucide-react';
+import { Mail, Shield, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 
 export default function Login() {
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isMagicLink, setIsMagicLink] = useState(true);
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (error) return;
-
-    const match = error.match(/Try again in (\d+) seconds/);
-    if (match) {
-      const seconds = parseInt(match[1], 10);
-      if (seconds > 0) {
-        const timer = setTimeout(() => {
-          setError((prev) => prev.replace(/in \d+ seconds/, `in ${seconds - 1} seconds`));
-        }, 1000);
-        return () => clearTimeout(timer);
-      } else {
-        setError((prev) => prev.replace(/Try again in \d+ seconds\./, 'You can try again now.'));
+    if (error) {
+      const match = error.match(/Try again in (\d+) seconds/);
+      if (match) {
+        const seconds = parseInt(match[1], 10);
+        if (seconds > 0) {
+          const timer = setTimeout(() => {
+            setError((prev) => prev.replace(/in \d+ seconds/, `in ${seconds - 1} seconds`));
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
       }
     }
   }, [error]);
@@ -35,27 +33,23 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setIsLoading(true);
     try {
-      if (isRegister) {
-        await api.post('/auth/register', { email, password });
-        setIsRegister(false);
-        setError('Registration successful. Please login.');
+      if (isMagicLink) {
+          await api.post('/auth/request-magic-link', { email: email.toLowerCase().trim() });
+          setInfo('Magic link sent! Please check your Gmail inbox.');
       } else {
-        const res = await api.post('/auth/login', { email, password });
-        const { access_token, refresh_token } = res.data;
-        const base64Url = access_token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        const payload = JSON.parse(jsonPayload);
-        
-        login(access_token, refresh_token, { id: payload.sub, email: payload.username, role: payload.role });
+        const res = await api.post('/auth/login', { 
+            email: email.toLowerCase().trim(), 
+            password 
+        });
+        const { access_token, refresh_token, user } = res.data;
+        login(access_token, refresh_token, user);
         navigate('/');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
+      setError(err.response?.data?.message || 'Authentication failed.');
     } finally {
       setIsLoading(false);
     }
@@ -63,11 +57,9 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] relative overflow-hidden font-sans transition-colors duration-300">
-      {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px]"></div>
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
       </div>
 
       <div className="w-full max-w-md px-6 z-10 animate-in fade-in zoom-in duration-500">
@@ -81,89 +73,79 @@ export default function Login() {
           <p className="text-[var(--muted)] text-xs font-bold tracking-[0.3em] uppercase mt-2">Enterprise Solutions</p>
         </div>
 
-        <div className="glass p-8 rounded-[2rem] shadow-2xl border border-[var(--border)] relative overflow-hidden group">
+        <div className="glass p-8 rounded-[2rem] shadow-2xl border border-[var(--border)] relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 premium-gradient opacity-50"></div>
           
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">
-              {isRegister ? 'Initialize Access' : 'Authentication'}
+              {isMagicLink ? 'Universal Access' : 'Secure Terminal'}
             </h2>
             <p className="text-[var(--muted)] text-sm">
-              {isRegister ? 'Construct your authorized identity.' : 'Enter your credentials to proceed.'}
+              {isMagicLink ? 'Login with your Gmail and a secure link.' : 'Authenticate using your established credentials.'}
             </p>
           </div>
           
-          {error && (
-            <div className={clsx(
-              "p-4 mb-6 rounded-xl text-sm font-medium border animate-in slide-in-from-top-2 duration-300",
-              error.includes('successful') 
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-                : "bg-rose-500/10 text-rose-500 border-rose-500/20"
-            )}>
-              {error}
-            </div>
-          )}
+          {error && <div className="p-4 mb-6 rounded-xl text-sm font-medium border bg-rose-500/10 text-rose-500 border-rose-500/20">{error}</div>}
+          {info && <div className="p-4 mb-6 rounded-xl text-sm font-medium border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{info}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Universal Identifier</label>
+              <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Gmail Account</label>
               <div className="relative group/input">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
                 <input
                   type="email"
-                  placeholder="name@company.com"
+                  placeholder="name@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-[var(--card-hover)] text-[var(--foreground)] placeholder-[var(--muted)] transition-all font-medium"
+                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-[var(--foreground)] transition-all font-medium"
                   required
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Security Keyphrase</label>
-              <div className="relative group/input">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:bg-[var(--card-hover)] text-[var(--foreground)] placeholder-[var(--muted)] transition-all font-medium"
-                  required
-                />
-              </div>
-            </div>
+            {!isMagicLink && (
+                <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest ml-1">Security Keyphrase</label>
+                    <div className="relative group/input">
+                        <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-blue-500 transition-colors" />
+                        <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/30 text-[var(--foreground)] transition-all font-medium"
+                            required
+                        />
+                    </div>
+                </div>
+            )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full premium-gradient hover:opacity-90 text-white font-bold py-4 rounded-xl transition-all duration-300 transform active:scale-[0.98] flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full premium-gradient text-white font-bold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <span>{isRegister ? 'Authorize Account' : 'Authenticate'}</span>
-                  {isRegister ? <UserPlus className="w-5 h-5 group-hover:translate-x-1 transition-transform" /> : <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-                </>
-              )}
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (isMagicLink ? 'Send Magic Link' : 'Log In')}
             </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-[var(--border)] text-center">
             <button
-              onClick={() => setIsRegister(!isRegister)}
-              className="text-[var(--muted)] hover:text-[var(--foreground)] text-xs font-bold tracking-wide transition-colors uppercase"
+              onClick={() => {
+                  setIsMagicLink(!isMagicLink);
+                  setError('');
+                  setInfo('');
+              }}
+              className="text-blue-500 hover:text-blue-400 text-xs font-bold tracking-wide transition-colors uppercase flex items-center justify-center gap-2 mx-auto"
             >
-              {isRegister ? 'Return to Primary Terminal' : 'Initialize New Identity'}
+              <Wand2 className="w-4 h-4" />
+              {isMagicLink ? 'Login with Password' : 'Login with Magic Link'}
             </button>
           </div>
         </div>
-        
-        <p className="mt-8 text-center text-[10px] font-bold text-[var(--muted)] uppercase tracking-[0.2em]">
-          &copy; 2026 TASKPRO TECHNOLOGIES. ALL RIGHTS RESERVED.
-        </p>
       </div>
     </div>
   );
