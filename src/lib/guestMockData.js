@@ -10,7 +10,7 @@ export const MOCK_TASKS_SETS = [
     [
         { id: 'gt-4', title: 'Satellite Uplink Calibration', description: 'Align phased array antenna with orbital data.', status: 'IN_PROGRESS', type: 'EXAM', duration: 5400, createdAt: new Date().toISOString() },
         { id: 'gt-5', title: 'Neural Interface Mapping', description: 'Sync biometric feedback with cortex signals.', status: 'PENDING', type: 'PRACTICE', duration: 900, createdAt: new Date().toISOString() },
-        { id: 'gt-6', title: 'Cybernetic Limb Firmware', description: 'Flash v4.2 update to prosthetic controller.', status: 'COMPLETED', type: 'PRACTICE', duration: 1200, createdAt: new Date().toISOString() },
+        { id: 'gt-6', title: 'Cybernetic Limb Firmware', description: 'Flash v4.2 update prosthetic controller.', status: 'COMPLETED', type: 'PRACTICE', duration: 1200, createdAt: new Date().toISOString() },
     ],
     [
         { id: 'gt-7', title: 'Dark Web Node Investigation', description: 'Track suspicious activity on decentralized relays.', status: 'IN_PROGRESS', type: 'EXAM', duration: 10800, createdAt: new Date().toISOString() },
