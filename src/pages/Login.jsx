@@ -179,7 +179,35 @@ export default function Login() {
             
             {method === 'password' && (
                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <label className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider ml-1">Password</label>
+                    <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-wider ml-1">Password</label>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!email) {
+                                    setError('Please enter your email address first to reset password.');
+                                    return;
+                                }
+                                setError('');
+                                setInfo('');
+                                setIsLoading(true);
+                                try {
+                                    await api.post('/auth/request-magic-link', { 
+                                        email: email.toLowerCase().trim(),
+                                        forgotPassword: true 
+                                    });
+                                    setInfo('A password reset link has been sent to your email.');
+                                } catch (err) {
+                                    setError(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            }}
+                            className="text-[11px] font-bold text-[var(--primary)] hover:text-[var(--primary-hover)] hover:underline uppercase tracking-wider transition-all"
+                        >
+                            Forgot Password?
+                        </button>
+                    </div>
                     <div className="relative group/input">
                         <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 group-focus-within/input:text-[var(--primary)] transition-colors" />
                         <input
