@@ -64,6 +64,15 @@ export class MessagesService {
     return Array.from(chatPartners.values());
   }
 
+  async getUnreadCount(userId: string) {
+    return this.prisma.message.count({
+      where: {
+        receiverId: userId,
+        isRead: false,
+      },
+    });
+  }
+
   async markAsRead(userId: string, senderId: string) {
     return this.prisma.message.updateMany({
       where: {

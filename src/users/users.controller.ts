@@ -30,7 +30,7 @@ export class UsersController {
   }
 
   @Patch('profile')
-  update(@Request() req, @Body() updateDto: { 
+  async update(@Request() req, @Body() updateDto: { 
     name?: string; 
     bio?: string; 
     address?: string; 
@@ -45,7 +45,7 @@ export class UsersController {
     
     // Special handling for password - hash it before saving
     if (data.password) {
-        // We'll handle this in profile/update for simplicity, or here
+        data.password = await bcrypt.hash(data.password, 10);
     } else {
         delete data.password;
     }

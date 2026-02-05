@@ -1,6 +1,7 @@
 
 import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { EmailService } from '../common/email.service';
@@ -152,5 +153,21 @@ export class AuthService {
     } catch (e) {
       throw new ForbiddenException('Invalid refresh token');
     }
+  }
+
+  async guestLogin() {
+      const GUEST_EMAIL = 'guest@taskpro.com';
+      let user = await this.usersService.findOne(GUEST_EMAIL);
+      
+      if (!user) {
+          user = await this.usersService.create({
+              email: GUEST_EMAIL,
+              name: 'Temporary Guest',
+              role: Role.GUEST,
+              bio: 'Observational restricted access account.'
+          } as any);
+      }
+
+      return this.login(user);
   }
 }

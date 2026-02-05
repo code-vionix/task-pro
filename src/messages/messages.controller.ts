@@ -13,6 +13,12 @@ export class MessagesController {
     return this.messagesService.getRecentChats(req.user.userId);
   }
 
+  @Get('unread-count')
+  async getUnreadCount(@Request() req) {
+    const count = await this.messagesService.getUnreadCount(req.user.userId);
+    return { count };
+  }
+
   @Get('conversation/:otherUserId')
   getConversation(@Request() req, @Param('otherUserId') otherUserId: string) {
     return this.messagesService.getConversation(req.user.userId, otherUserId);

@@ -1,5 +1,5 @@
 
-import { Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
 
@@ -18,7 +18,7 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id);
   }
 
-  @Post('read-all')
+  @Patch('read-all')
   markAllAsRead(@Request() req) {
     return this.notificationsService.markAllAsRead(req.user.userId);
   }

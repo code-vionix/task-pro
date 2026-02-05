@@ -37,4 +37,9 @@ export class AuthController {
     if (!body.email || !body.token) throw new BadRequestException('Email and token are required');
     return this.authService.verifyMagicLink(body.email, body.token);
   }
+
+  @Post('guest-login')
+  async guestLogin() {
+      return this.authService.guestLogin();
+  }
 }

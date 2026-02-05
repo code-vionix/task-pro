@@ -79,14 +79,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Send to receiver room (all tabs)
     this.server.to(`user_${receiverId}`).emit('newMessage', message);
 
-    // Also notify about new message
-    await this.notifications.create({
-        type: 'MESSAGE',
-        message: `New message from ${message.sender.email.split('@')[0]}`,
-        userId: receiverId,
-        data: { senderId },
-    });
-
     return message;
   }
 
