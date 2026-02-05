@@ -29,6 +29,7 @@ export default function Chat() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [socket, setSocket] = useState(null);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Logical Restrictions
   const isGuest = currentUser?.role === 'GUEST';
@@ -103,12 +104,16 @@ export default function Chat() {
   }, [currentUser?.id, isGuest, isTotallyBlocked, selectedUser?.id]);
 
   // 2. Data Acquisition
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+
   const fetchChats = async () => {
     if (isGuest || isTotallyBlocked) return;
+    setIsLoading(true);
     try {
       const res = await api.get('/messages/chats');
       setChats(res.data);
     } catch (err) { console.error('Acquisition failure: Chats', err); }
+    finally { setIsLoading(false); }
   };
 
   const fetchUserInfo = async (id) => {
@@ -126,10 +131,12 @@ export default function Chat() {
       ]);
       return;
     }
+    setIsMessagesLoading(true);
     try {
       const res = await api.get(`/messages/conversation/${id}`);
       setMessages(res.data);
     } catch (err) { console.error('Acquisition failure: Decryption', err); }
+    finally { setIsMessagesLoading(false); }
   };
 
   useEffect(() => {
@@ -209,7 +216,8 @@ export default function Chat() {
           selectedUser={selectedUser} 
           onSelectChat={handleSelectChat} 
           isGuest={isGuest} 
-          showSidebar={showSidebar} 
+          showSidebar={showSidebar}
+          isLoading={isLoading} 
         />
 
         {/* 3. Secondary Navigation: Content Pane */}
@@ -230,6 +238,7 @@ export default function Chat() {
                 onReact={handleReact}
                 onDelete={handleDeleteMessage}
                 formatLastSeen={formatLastSeen}
+                isLoading={isMessagesLoading}
             />
           ) : (
             <ChatWelcome isGuest={isGuest} />

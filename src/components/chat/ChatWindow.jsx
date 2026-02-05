@@ -18,7 +18,8 @@ export default function ChatWindow({
   setInput, 
   onReact, 
   onDelete, 
-  formatLastSeen 
+  formatLastSeen,
+  isLoading
 }) {
   const messagesEndRef = useRef(null);
 
@@ -46,6 +47,7 @@ export default function ChatWindow({
         onReact={onReact}
         onDelete={onDelete}
         messagesEndRef={messagesEndRef}
+        isLoading={isLoading}
       />
 
       {/* 3. Operational Input Console */}

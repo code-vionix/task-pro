@@ -1,5 +1,5 @@
 
-import { Send } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import ChatMessage from './ChatMessage';
 
 /**
@@ -11,8 +11,17 @@ export default function MessageStream({
   isGuest, 
   onReact, 
   onDelete, 
-  messagesEndRef 
+  messagesEndRef,
+  isLoading 
 }) {
+  if (isLoading) {
+      return (
+          <div className="flex-1 overflow-y-auto p-6 flex items-center justify-center bg-black/5">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+      );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-black/5 relative">
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(circle_at_center,_var(--foreground)_1px,_transparent_1px)] bg-[size:24px_24px]" />
