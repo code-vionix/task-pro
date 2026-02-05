@@ -1,5 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import api from '../lib/api';
 
 const AuthContext = createContext(undefined);
 
@@ -11,8 +12,20 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initial load check complete
-    setIsLoading(false);
+    const fetchProfile = async () => {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            try {
+                const res = await api.get('/users/profile');
+                setUser(res.data);
+                localStorage.setItem('user', JSON.stringify(res.data));
+            } catch (err) {
+                console.error("Failed to sync profile", err);
+            }
+        }
+        setIsLoading(false);
+    };
+    fetchProfile();
   }, []);
 
   const login = (token, refreshToken, userData) => {

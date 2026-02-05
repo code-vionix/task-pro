@@ -23,12 +23,23 @@ export default function Chat() {
   
   const isGuest = currentUser?.role === 'GUEST';
   const guestChats = useMemo(() => isGuest ? getSeededSet(MOCK_CHATS_SETS, guestDataSeed) : [], [isGuest, guestDataSeed]);
+    const isMessageRestricted = currentUser?.role !== 'ADMIN' && !currentUser?.canMessage;
+    const isSocialRestricted = currentUser?.role !== 'ADMIN' && !currentUser?.canUseCommunity;
+    
+    // Total block if social is off? Or just message?
+    const isTotallyBlocked = isMessageRestricted || isSocialRestricted;
+
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (!currentUser?.id) return;
     if (isGuest) {
         setChats(guestChats);
+        return;
+    }
+
+    if (isTotallyBlocked) {
+        setChats([]);
         return;
     }
 
@@ -222,7 +233,28 @@ export default function Chat() {
   };
 
   return (
-    <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-160px)] flex border border-[var(--border)] glass rounded-xl md:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-500">
+    <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-160px)] flex border border-[var(--border)] glass rounded-xl md:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-500 relative">
+        {(isGuest || isTotallyBlocked) && (
+            <div className="absolute inset-0 z-[60] bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-6 text-center">
+                <div className="bg-[var(--card)] border border-[var(--border)] p-8 rounded-3xl shadow-2xl animate-in zoom-in max-w-sm">
+                    <ShieldAlert className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-black text-[var(--foreground)] mb-2 uppercase tracking-tighter italic">
+                        {isTotallyBlocked ? "Access Restricted" : "Guest Mode"}
+                    </h3>
+                    <p className="text-sm text-[var(--muted)] font-medium mb-6">
+                        {isTotallyBlocked 
+                            ? "Your communications have been suspended by security command. Consult with an administrator to restore access."
+                            : "You are currently in Observation Mode. Transmitting signals is restricted to registered entities."
+                        }
+                    </p>
+                    {isGuest && (
+                        <button className="w-full premium-gradient text-white py-3 rounded-2xl font-black uppercase text-xs tracking-widest">
+                            Register Identity
+                        </button>
+                    )}
+                </div>
+            </div>
+        )}
       <div className={clsx(
           "w-full md:w-80 border-r border-[var(--border)] flex flex-col bg-[var(--background)]/30 transition-all duration-300",
           !showSidebar && "hidden md:flex",

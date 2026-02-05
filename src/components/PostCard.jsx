@@ -181,20 +181,22 @@ export function PostCard({ post, onUpdate, currentUser }) {
 
             {showMenu && (
                 <div className="absolute right-0 mt-2 w-48 glass-card bg-[var(--background)] border border-[var(--border)] rounded-xl shadow-2xl py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {currentUser?.id === post.userId && !isGuest && (
+                    {!isGuest && (currentUser?.id === post.userId || currentUser?.role === 'ADMIN') && (
                         <>
-                            <button 
-                                onClick={() => {
-                                    setShowMenu(false);
-                                    const newContent = prompt('Edit your post', post.content);
-                                    if (newContent && newContent !== post.content) {
-                                        handleUpdatePost(newContent);
-                                    }
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--foreground)] hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
-                            >
-                                <Edit2 className="w-4 h-4" /> Edit Post
-                            </button>
+                            {currentUser?.id === post.userId && (
+                                <button 
+                                    onClick={() => {
+                                        setShowMenu(false);
+                                        const newContent = prompt('Edit your post', post.content);
+                                        if (newContent && newContent !== post.content) {
+                                            handleUpdatePost(newContent);
+                                        }
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--foreground)] hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+                                >
+                                    <Edit2 className="w-4 h-4" /> Edit Post
+                                </button>
+                            )}
                             <button 
                                  onClick={() => {
                                      setShowMenu(false);

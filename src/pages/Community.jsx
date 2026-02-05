@@ -25,10 +25,13 @@ export default function Community() {
   const observer = useRef();
   
   const isGuest = user?.role === 'GUEST';
+  const isRestricted = user?.role !== 'ADMIN' && !user?.canUseCommunity;
+  const canPost = user?.role === 'ADMIN' || user?.canPost;
+  
   const guestPosts = useMemo(() => isGuest ? getSeededSet(MOCK_POSTS_SETS, guestDataSeed) : [], [isGuest, guestDataSeed]);
 
   const lastPostElementRef = useCallback(node => {
-    if (fetchingPosts) return;
+    if (fetchingPosts || isRestricted) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
@@ -36,11 +39,16 @@ export default function Community() {
       }
     });
     if (node) observer.current.observe(node);
-  }, [fetchingPosts, hasMore]);
+  }, [fetchingPosts, hasMore, isRestricted]);
 
   const fetchPosts = async (pageNum, isInitial = false) => {
     if (isGuest) {
         setPosts(guestPosts);
+        setHasMore(false);
+        return;
+    }
+    if (isRestricted) {
+        setPosts([]);
         setHasMore(false);
         return;
     }
@@ -72,15 +80,16 @@ export default function Community() {
 
   useEffect(() => {
     fetchPosts(1, true);
-  }, []);
+  }, [isRestricted]);
 
   useEffect(() => {
-    if (page > 1) {
+    if (page > 1 && !isRestricted) {
       fetchPosts(page);
     }
-  }, [page]);
+  }, [page, isRestricted]);
 
   const refreshFeed = () => {
+    if (isRestricted) return;
     setPage(1);
     setHasMore(true);
     fetchPosts(1, true);
@@ -102,6 +111,7 @@ export default function Community() {
 
   const handleFileChange = async (e) => {
       if (isGuest) return toast.error("Observation Mode: Upload restricted.");
+      if (!canPost) return toast.error("Your posting privileges have been suspended.");
       const file = e.target.files?.[0];
       if (file) {
           setImagePreview(URL.createObjectURL(file));
@@ -123,6 +133,7 @@ export default function Community() {
 
   const createPost = async () => {
     if (isGuest) return toast.error("Observation Mode: Posting restricted.");
+    if (!canPost) return toast.error("Your posting privileges have been suspended.");
     if (!content.trim() && !imageFile) return;
     
     // Optimistic Update
@@ -177,11 +188,13 @@ export default function Community() {
       
       {/* Create Post Interface */}
       <div className="glass-card p-4 space-y-4 relative group">
-        {isGuest && (
+        {(isGuest || isRestricted || !canPost) && (
             <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] rounded-2xl flex items-center justify-center">
                 <div className="bg-amber-500/20 border border-amber-500/30 px-6 py-3 rounded-2xl flex items-center gap-3 animate-in zoom-in">
                     <ShieldAlert className="w-5 h-5 text-amber-500" />
-                    <span className="text-xs font-black uppercase tracking-widest text-amber-500">Guest Restriction Protocol</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-amber-500">
+                        {isRestricted ? "Access Restricted" : isGuest ? "Guest Mode" : "Posting Blocked"}
+                    </span>
                 </div>
             </div>
         )}
