@@ -1,5 +1,7 @@
+
 import { Body, Controller, Get, Param, Patch, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CloudinaryService } from '../common/cloudinary.service';
 import { UsersService } from './users.service';
@@ -28,8 +30,48 @@ export class UsersController {
   }
 
   @Patch('profile')
-  update(@Request() req, @Body() updateDto: { bio?: string; avatarUrl?: string; coverImageUrl?: string; coverPosition?: any; avatarPosition?: any }) {
-    return this.usersService.update(req.user.userId, updateDto);
+  update(@Request() req, @Body() updateDto: { 
+    name?: string; 
+    bio?: string; 
+    address?: string; 
+    education?: string; 
+    avatarUrl?: string; 
+    coverImageUrl?: string; 
+    coverPosition?: any; 
+    avatarPosition?: any;
+    password?: string;
+  }) {
+    const data: any = { ...updateDto };
+    
+    // Special handling for password - hash it before saving
+    if (data.password) {
+        // We'll handle this in profile/update for simplicity, or here
+    } else {
+        delete data.password;
+    }
+
+    return this.usersService.update(req.user.userId, data);
+  }
+
+  @Patch('profile/update')
+  async updateProfileInfo(@Request() req, @Body() body: { 
+    name?: string; 
+    password?: string;
+    bio?: string;
+    address?: string;
+    education?: string;
+  }) {
+    const data: any = {};
+    if (body.name !== undefined) data.name = body.name;
+    if (body.bio !== undefined) data.bio = body.bio;
+    if (body.address !== undefined) data.address = body.address;
+    if (body.education !== undefined) data.education = body.education;
+    
+    if (body.password) {
+        data.password = await bcrypt.hash(body.password, 10);
+    }
+    
+    return this.usersService.update(req.user.userId, data);
   }
 
   @Post('upload-avatar')

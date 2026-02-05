@@ -30,8 +30,11 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        name: true,
         role: true,
         bio: true,
+        address: true,
+        education: true,
         avatarUrl: true,
         coverImageUrl: true,
         coverPosition: true,
@@ -70,6 +73,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        name: true,
         avatarUrl: true,
         isOnline: true,
       },

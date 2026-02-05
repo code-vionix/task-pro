@@ -29,51 +29,56 @@ enum TaskType {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  password     String
-  role         Role     @default(USER)
-  tasks        Task[]
-  refreshToken   String?
-  failedAttempts Int       @default(0)
-  lockoutUntil   DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  bio            String?
-  avatarUrl      String?
-  coverImageUrl  String?
-  coverPosition  Json?
-  avatarPosition Json?
-  isOnline       Boolean   @default(false)
-  lastSeen       DateTime? @default(now())
-  posts          Post[]
-  comments       Comment[]
-  reactions      Reaction[]
-  sentMessages   Message[] @relation("SentMessages")
+  id               String   @id @default(uuid())
+  email            String   @unique
+  password         String?
+  name             String?
+  role             Role     @default(USER)
+  tasks            Task[]
+  refreshToken     String?
+  failedAttempts   Int       @default(0)
+  lockoutUntil     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  bio              String?
+  address          String?
+  education        String?
+  avatarUrl        String?
+  coverImageUrl     String?
+  coverPosition    Json?
+  avatarPosition   Json?
+  isOnline         Boolean   @default(false)
+  lastSeen         DateTime? @default(now())
+  posts            Post[]
+  comments         Comment[]
+  reactions        Reaction[]
+  sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
-  notifications  Notification[]
+  notifications    Notification[]
   messageReactions MessageReaction[]
+  otp              String?
+  otpExpires        DateTime?
 }
 
 model Task {
-  id          String        @id @default(uuid())
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  isStopped   Boolean       @default(false)
-  status      TaskStatus    @default(PENDING)
-  type        TaskType      @default(PRACTICE)
-  duration    Int           @default(300) // Duration in seconds (default 5 mins)
-  startedAt   DateTime?
-  completedAt DateTime?
-  userId      String?
-  user        User?          @relation(fields: [userId], references: [id])
-  subTasks    SubTask[]
-  history     TaskHistory[]
-  deletedAt   DateTime? // For soft delete
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  isStopped     Boolean       @default(false)
+  status        TaskStatus    @default(PENDING)
+  type          TaskType      @default(PRACTICE)
+  duration      Int           @default(300) // Duration in seconds (default 5 mins)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  userId        String?
+  user          User?          @relation(fields: [userId], references: [id])
+  subTasks      SubTask[]
+  history       TaskHistory[]
+  deletedAt     DateTime? // For soft delete
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   lastStoppedAt DateTime?
 }
 

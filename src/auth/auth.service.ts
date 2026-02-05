@@ -1,7 +1,9 @@
 
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { EmailService } from '../common/email.service';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -9,12 +11,13 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOne(email);
     
-    if (!user) return null;
+    if (!user || !user.password) return null;
 
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
       const waitSeconds = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 1000);
@@ -61,16 +64,73 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: (process.env.JWT_EXPIRE || '15m') as any }),
       refresh_token: refreshToken,
-      user: { id: user.id, email: user.email, role: user.role }
+      user: { id: user.id, email: user.email, role: user.role, name: user.name }
     };
   }
 
   async register(userDto: any) {
-    const hashedPassword = await bcrypt.hash(userDto.password, 10);
+    const hashedPassword = userDto.password ? await bcrypt.hash(userDto.password, 10) : undefined;
     return this.usersService.create({
       ...userDto,
       password: hashedPassword,
     });
+  }
+
+  async requestMagicLink(email: string) {
+    let user = await this.usersService.findOne(email.toLowerCase().trim());
+    if (!user) {
+        // Auto-register user if they don't exist
+        user = await this.usersService.create({ email: email.toLowerCase().trim() });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    console.log(`Generating Magic Link for: ${email}`);
+    console.log(`Token: ${token}`);
+
+    await this.usersService.update(user.id, {
+        otp: token,
+        otpExpires: expires,
+    });
+
+    await this.emailService.sendMagicLink(email, token);
+    return { message: 'Magic link sent' };
+  }
+
+  async verifyMagicLink(email: string, token: string) {
+    console.log(`Verifying Magic Link for: ${email}`);
+    console.log(`Received Token: ${token}`);
+    
+    const user = await this.usersService.findOne(email.toLowerCase().trim());
+    
+    if (!user) {
+        console.error('Verification Failed: User not found');
+        throw new UnauthorizedException('Invalid or expired magic link');
+    }
+
+    console.log(`DB Token: ${user.otp}`);
+    console.log(`DB Expires: ${user.otpExpires}`);
+    console.log(`Current Time: ${new Date()}`);
+
+    if (user.otp !== token) {
+        console.error('Verification Failed: Token mismatch');
+        throw new UnauthorizedException('Invalid or expired magic link');
+    }
+
+    if (user.otpExpires && user.otpExpires < new Date()) {
+        console.error('Verification Failed: Token expired');
+        throw new UnauthorizedException('Invalid or expired magic link');
+    }
+
+    // Clear OTP after use
+    await this.usersService.update(user.id, {
+        otp: null,
+        otpExpires: null,
+    });
+
+    console.log('Verification Successful!');
+    return this.login(user);
   }
 
   async refresh(refreshToken: string) {

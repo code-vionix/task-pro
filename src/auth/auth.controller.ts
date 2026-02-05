@@ -25,4 +25,16 @@ export class AuthController {
   async refresh(@Body() body: { refresh_token: string }) {
     return this.authService.refresh(body.refresh_token);
   }
+
+  @Post('request-magic-link')
+  async requestMagicLink(@Body('email') email: string) {
+    if (!email) throw new BadRequestException('Email is required');
+    return this.authService.requestMagicLink(email);
+  }
+
+  @Post('verify-magic-link')
+  async verifyMagicLink(@Body() body: { email: string; token: string }) {
+    if (!body.email || !body.token) throw new BadRequestException('Email and token are required');
+    return this.authService.verifyMagicLink(body.email, body.token);
+  }
 }
