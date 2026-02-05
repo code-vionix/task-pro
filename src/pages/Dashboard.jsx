@@ -1,19 +1,26 @@
 
 import clsx from 'clsx';
-import { Calendar, CheckCircle2, LayoutDashboard, List, Play, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Calendar, CheckCircle2, LayoutDashboard, List, Play, Plus, Search, ShieldAlert, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { StatsCard, TaskItem } from '../components/SharedComponents';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { MOCK_TASKS_SETS, getSeededSet } from '../lib/guestMockData';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, guestDataSeed } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState({ active: 0, completed: 0, pending: 0, total: 0 });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [filter, setFilter] = useState('ALL');
   const [isAdmin, setIsAdmin] = useState(false);
   
+  const isGuest = user?.role === 'GUEST';
+
+  // Guest Mock Data - Persistent for this session component mount
+  const guestTasks = useMemo(() => isGuest ? getSeededSet(MOCK_TASKS_SETS, guestDataSeed) : [], [isGuest, guestDataSeed]);
+
   // New Task Form
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
@@ -29,6 +36,16 @@ export default function Dashboard() {
   }, [user]);
 
   const fetchDashboardData = async () => {
+    if (isGuest) {
+        setTasks(guestTasks);
+        setStats({
+            total: guestTasks.length,
+            active: guestTasks.filter(t => t.status === 'IN_PROGRESS').length,
+            completed: guestTasks.filter(t => t.status === 'COMPLETED').length,
+            pending: guestTasks.filter(t => t.status === 'PENDING').length
+        });
+        return;
+    }
     try {
       const [tasksRes, statsRes] = await Promise.all([
         api.get('/tasks'),
@@ -43,6 +60,7 @@ export default function Dashboard() {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
+    if (isGuest) return toast.error("Guest Mode: Update restricted.");
     try {
         await api.post('/tasks', {
             title: newTaskTitle,
@@ -57,7 +75,7 @@ export default function Dashboard() {
         setAssignedToEmail('');
         fetchDashboardData();
     } catch (err) {
-        alert('Failed to create task');
+        toast.error('Failed to create task');
     }
   };
 
@@ -66,13 +84,21 @@ export default function Dashboard() {
       return t.status === filter;
   });
 
-  // Re-use task handlers from MyTasks logic or define simplified versions that refresh dashboard
   const handleRefresh = () => fetchDashboardData();
-  const handleStart = async (id) => { await api.patch(`/tasks/${id}/start`); handleRefresh(); };
-  const handleComplete = async (id) => { await api.patch(`/tasks/${id}/complete`); handleRefresh(); };
-  const handleStop = async (id) => { await api.patch(`/tasks/${id}/stop`); handleRefresh(); };
-  const handleDelete = async (id) => { if(confirm('Delete?')) { await api.delete(`/tasks/${id}`); handleRefresh(); }};
-  const handleAssign = async (id) => { await api.patch(`/tasks/${id}/assign`); handleRefresh(); };
+  
+  const guardAction = (callback) => {
+      if (isGuest) {
+          toast.error("Guest Mode: Action restricted.");
+          return;
+      }
+      callback();
+  };
+
+  const handleStart = (id) => guardAction(async () => { await api.patch(`/tasks/${id}/start`); handleRefresh(); });
+  const handleComplete = (id) => guardAction(async () => { await api.patch(`/tasks/${id}/complete`); handleRefresh(); });
+  const handleStop = (id) => guardAction(async () => { await api.patch(`/tasks/${id}/stop`); handleRefresh(); });
+  const handleDelete = (id) => guardAction(async () => { if(confirm('Delete?')) { await api.delete(`/tasks/${id}`); handleRefresh(); }});
+  const handleAssign = (id) => guardAction(async () => { await api.patch(`/tasks/${id}/assign`); handleRefresh(); });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -81,17 +107,17 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center gap-3 mb-2 text-blue-500">
             <LayoutDashboard className="w-5 h-5" />
-            <span className="text-xs font-bold tracking-widest uppercase">Overview</span>
+            <span className="text-xs font-bold tracking-widest uppercase">Tasks</span>
           </div>
           <h1 className="text-3xl font-extrabold text-[var(--foreground)] tracking-tight">
              Dashboard
           </h1>
           <p className="text-[var(--muted)] mt-2 max-w-lg">
-             Welcome back, {user?.email.split('@')[0]}. Here's what's happening today.
+             {isGuest ? "Viewing demo tasks as a guest." : "Manage your daily tasks efficiently."}
           </p>
         </div>
         
-        {isAdmin && (
+        {isAdmin && !isGuest && (
             <div className="flex items-center gap-3">
                 <button 
                     onClick={() => setShowCreateModal(true)}
@@ -100,6 +126,13 @@ export default function Dashboard() {
                     <Plus className="w-5 h-5" />
                     <span>New Task</span>
                 </button>
+            </div>
+        )}
+
+        {isGuest && (
+            <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-2 text-blue-400">
+                <ShieldAlert className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Guest Mode</span>
             </div>
         )}
       </div>
@@ -168,7 +201,7 @@ export default function Dashboard() {
       </div>
 
       {/* Create Modal */}
-      {showCreateModal && (
+      {showCreateModal && !isGuest && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-[var(--card)] border border-[var(--border)] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                   <div className="p-6 border-b border-[var(--border)] flex justify-between items-center bg-[var(--foreground)]/[0.02]">

@@ -1,14 +1,16 @@
 
 import clsx from 'clsx';
-import { ArrowLeft, Check, CheckCheck, MessageSquare, Search, Send, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, CheckCheck, MessageCircle, Search, Send, ShieldAlert, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
+import { MOCK_CHATS_SETS, getSeededSet } from '../lib/guestMockData';
 
 export default function Chat() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, guestDataSeed } = useAuth();
   const [searchParams] = useSearchParams();
   const targetUserId = searchParams.get('user');
 
@@ -19,10 +21,16 @@ export default function Chat() {
   const [socket, setSocket] = useState(null);
   const [showSidebar, setShowSidebar] = useState(true);
   
+  const isGuest = currentUser?.role === 'GUEST';
+  const guestChats = useMemo(() => isGuest ? getSeededSet(MOCK_CHATS_SETS, guestDataSeed) : [], [isGuest, guestDataSeed]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (!currentUser?.id) return;
+    if (isGuest) {
+        setChats(guestChats);
+        return;
+    }
 
     // Connect to Socket.io
     const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
@@ -33,8 +41,12 @@ export default function Chat() {
     newSocket.on('newMessage', (msg) => {
         setMessages(prev => {
             if (msg.senderId === selectedUser?.id || msg.receiverId === selectedUser?.id) {
-                if (msg.senderId === selectedUser?.id) {
+                if (msg.senderId === selectedUser?.id && !isGuest) {
+                    // Note: markAsRead logic is now in a useEffect triggered by selectedUser or message updates
                     newSocket.emit('markAsRead', { senderId: msg.senderId, userId: currentUser.id });
+                    api.patch(`/messages/read/${msg.senderId}`).then(() => {
+                        window.dispatchEvent(new CustomEvent('messagesRead'));
+                    });
                 }
                 return [...prev, msg];
             }
@@ -46,7 +58,6 @@ export default function Chat() {
     newSocket.on('messageReaction', ({ messageId, reaction }) => {
         setMessages(prev => prev.map(m => 
             m.id === messageId 
-                // Add new reaction (simplified logic: just append)
                 ? { ...m, reactions: [...(m.reactions?.filter((r) => r.userId !== reaction.userId) || []), reaction] } 
                 : m
         ));
@@ -76,7 +87,7 @@ export default function Chat() {
     return () => {
         newSocket.disconnect();
     };
-  }, [currentUser?.id, selectedUser?.id]);
+  }, [currentUser?.id, selectedUser?.id, isGuest]);
 
   const formatLastSeen = (date) => {
     if (!date) return '';
@@ -91,7 +102,7 @@ export default function Chat() {
   };
 
   useEffect(() => {
-    fetchChats();
+    if (!isGuest) fetchChats();
     if (targetUserId) {
         fetchUserInfo(targetUserId);
         fetchConversation(targetUserId);
@@ -100,7 +111,28 @@ export default function Chat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Mark messages as read when new messages arrive while user is already selected
+    if (selectedUser && !isGuest && messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg.senderId === selectedUser.id && !lastMsg.isRead) {
+             socket?.emit('markAsRead', { senderId: selectedUser.id, userId: currentUser?.id });
+             api.patch(`/messages/read/${selectedUser.id}`).then(() => {
+                 window.dispatchEvent(new CustomEvent('messagesRead'));
+             });
+        }
+    }
+  }, [messages, selectedUser, isGuest, socket, currentUser?.id]);
+
+  // Mark as read when selected user changes (initial load or switch)
+  useEffect(() => {
+    if (selectedUser && !isGuest) {
+        setChats(prev => prev.map(c => c.id === selectedUser.id ? { ...c, unreadCount: 0 } : c));
+        socket?.emit('markAsRead', { senderId: selectedUser.id, userId: currentUser?.id });
+        api.patch(`/messages/read/${selectedUser.id}`).then(() => {
+            window.dispatchEvent(new CustomEvent('messagesRead'));
+        });
+    }
+  }, [selectedUser?.id, isGuest, socket, currentUser?.id]);
 
   const fetchChats = async () => {
     try {
@@ -121,6 +153,13 @@ export default function Chat() {
   };
 
   const fetchConversation = async (id) => {
+    if (isGuest) {
+        setMessages([
+            { id: 'gm-1', content: 'Simulation message initialized...', createdAt: new Date().toISOString(), senderId: id, sender: { email: 'demo_user' } },
+            { id: 'gm-2', content: 'Protocol synchronization complete.', createdAt: new Date().toISOString(), senderId: currentUser.id, sender: { email: 'guest' } }
+        ]);
+        return;
+    }
     try {
       const res = await api.get(`/messages/conversation/${id}`);
       setMessages(res.data);
@@ -131,6 +170,7 @@ export default function Chat() {
 
   const handleSendMessage = (e) => {
     e.preventDefault();
+    if (isGuest) return toast.error("Guest Mode: Sending restricted.");
     if (!input.trim() || !selectedUser || !socket) return;
 
     const messageData = {
@@ -150,17 +190,13 @@ export default function Chat() {
   const selectChat = (user) => {
       setSelectedUser(user);
       fetchConversation(user.id);
-      // Mark as read locally and on server
-      setChats(prev => prev.map(c => c.id === user.id ? { ...c, unreadCount: 0 } : c));
-      socket?.emit('markAsRead', { senderId: user.id, userId: currentUser?.id });
-      api.patch(`/messages/read/${user.id}`);
-      // Hide sidebar on mobile when a chat is selected
       if (window.innerWidth < 768) {
           setShowSidebar(false);
       }
   };
 
   const handleReact = (messageId, type) => {
+      if (isGuest) return toast.error("Guest Mode: Reactions restricted.");
       if (!socket || !selectedUser) return;
       socket.emit('reactToMessage', { 
           messageId, 
@@ -168,7 +204,6 @@ export default function Chat() {
           userId: currentUser?.id, 
           receiverId: selectedUser.id 
       });
-      // Update locally
       setMessages(prev => prev.map(m => 
           m.id === messageId 
             ? { ...m, reactions: [...(m.reactions?.filter((r) => r.userId !== currentUser?.id) || []), { userId: currentUser?.id, type }] } 
@@ -177,10 +212,10 @@ export default function Chat() {
   };
 
   const handleDeleteMessage = (messageId) => {
+      if (isGuest) return;
       if (!socket || !selectedUser) return;
       if (confirm('Unsend this message?')) {
           socket.emit('deleteMessage', { messageId, userId: currentUser?.id, receiverId: selectedUser.id });
-          // Update locally
           setMessages(prev => prev.filter(m => m.id !== messageId));
           fetchChats();
       }
@@ -188,7 +223,6 @@ export default function Chat() {
 
   return (
     <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-160px)] flex border border-[var(--border)] glass rounded-xl md:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in duration-500">
-      {/* Sidebar: Recent Chats */}
       <div className={clsx(
           "w-full md:w-80 border-r border-[var(--border)] flex flex-col bg-[var(--background)]/30 transition-all duration-300",
           !showSidebar && "hidden md:flex",
@@ -196,7 +230,7 @@ export default function Chat() {
 
       )}>
         <div className="p-6 border-b border-[var(--border)]">
-            <h2 className="text-xl font-black text-[var(--foreground)] italic tracking-tight mb-4 uppercase">Direct Messages</h2>
+            <h2 className="text-xl font-black text-[var(--foreground)] italic tracking-tight mb-4 uppercase text-blue-500">Messages</h2>
             <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input 
@@ -231,7 +265,7 @@ export default function Chat() {
                                         />
                                     ) : <span className="text-[var(--foreground)] font-bold">{chat.email[0]}</span>}
                                 </div>
-                                {chat.unreadCount > 0 && (
+                                {chat.unreadCount > 0 && !isGuest && (
                                     <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-slate-900 animate-in zoom-in">
                                         {chat.unreadCount}
                                     </div>
@@ -239,12 +273,12 @@ export default function Chat() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline">
-                                    <h4 className={clsx("font-bold text-sm truncate", chat.unreadCount > 0 ? "text-[var(--foreground)]" : "text-[var(--muted)]")}>
+                                    <h4 className={clsx("font-bold text-sm truncate", chat.unreadCount > 0 && !isGuest ? "text-[var(--foreground)]" : "text-[var(--muted)]")}>
                                         {chat.email.split('@')[0]}
                                     </h4>
                                     <span className="text-[10px] text-slate-500">{new Date(chat.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className={clsx("text-xs truncate mt-1 italic pr-2", chat.unreadCount > 0 ? "text-blue-400 font-bold" : "text-[var(--muted)]")}>
+                                <p className={clsx("text-xs truncate mt-1 italic pr-2", chat.unreadCount > 0 && !isGuest ? "text-blue-400 font-bold" : "text-[var(--muted)]")}>
                                     {chat.lastMessage}
                                 </p>
                             </div>
@@ -255,16 +289,19 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Main: Active Conversation */}
       <div className={clsx(
           "flex-1 flex flex-col relative overflow-hidden transition-all duration-300",
           showSidebar && "hidden md:flex"
       )}>
         {selectedUser ? (
             <>
-                {/* Header */}
-                <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/40">
-                    <div className="flex items-center gap-2 md:gap-4">
+                <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/40 relative">
+                    {isGuest && (
+                        <div className="absolute inset-0 bg-amber-500/5 backdrop-blur-[1px] z-[1] flex items-center justify-center pointer-events-none">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500 opacity-20">Guest Mode</span>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2 md:gap-4 z-[2]">
                         <button 
                             onClick={() => setShowSidebar(true)}
                             className="md:hidden p-2 -ml-2 text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -286,7 +323,7 @@ export default function Chat() {
                             )}
                         </div>
                         <div>
-                            <h3 className="font-black text-[var(--foreground)]">{selectedUser.email.split('@')[0]}</h3>
+                            <h3 className="font-black text-[var(--foreground)] uppercase tracking-tight">{selectedUser.email.split('@')[0]}</h3>
                             <div className="flex items-center gap-2">
                                 <div className={clsx("w-2 h-2 rounded-full", selectedUser.isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-500")}></div>
                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -297,7 +334,6 @@ export default function Chat() {
                     </div>
                 </div>
 
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-black/5">
                     {messages.map((msg, idx) => {
                         const isMine = msg.senderId === currentUser?.id;
@@ -305,7 +341,6 @@ export default function Chat() {
                         
                         return (
                             <div key={msg.id || idx} className={clsx("flex w-full gap-2", isMine ? "flex-row-reverse" : "flex-row")}>
-                                {/* Avatar */}
                                 <div className="w-8 h-8 shrink-0 flex items-end">
                                     {isLastInGroup ? (
                                         <div className="w-8 h-8 rounded-full bg-[var(--card)] overflow-hidden border border-[var(--border)] shadow-sm">
@@ -335,26 +370,26 @@ export default function Chat() {
                                             {msg.content}
                                         </div>
 
-                                        {/* Reactions Display */}
                                         {msg.reactions?.length > 0 && (
                                             <div className={clsx(
                                                 "absolute -bottom-3 flex items-center bg-[var(--card)] border border-[var(--border)] rounded-full px-1.5 py-0.5 shadow-lg",
                                                 isMine ? "right-0" : "left-0"
                                             )}>
-                                                {msg.reactions.map((r) => (
-                                                    <span key={r.userId} className="text-xs">
+                                                {msg.reactions.map((r, i) => (
+                                                    <span key={i} className="text-xs">
                                                         {r.type === 'LIKE' ? '👍' : r.type === 'LOVE' ? '❤️' : ''}
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
 
-                                        {/* Reaction Trigger Button */}
                                         <button 
                                             onClick={() => handleReact(msg.id, msg.reactions?.some((r) => r.userId === currentUser?.id && r.type === 'LIKE') ? 'UNLIKE' : 'LIKE')}
+                                            disabled={isGuest}
                                             className={clsx(
                                                 "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all p-2 rounded-full hover:bg-[var(--foreground)]/10",
-                                                isMine ? "-left-12" : "-right-12"
+                                                isMine ? "-left-12" : "-right-12",
+                                                isGuest && "cursor-not-allowed"
                                             )}
                                         >
                                             <div className={clsx(
@@ -375,7 +410,7 @@ export default function Chat() {
                                                 ? <CheckCheck className="w-3 h-3 text-emerald-500" /> 
                                                 : <Check className="w-3 h-3" />
                                         )}
-                                        {isMine && (
+                                        {isMine && !isGuest && (
                                             <button 
                                                 onClick={() => handleDeleteMessage(msg.id)}
                                                 className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-rose-500 hover:text-rose-400"
@@ -392,20 +427,20 @@ export default function Chat() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
-                <form onSubmit={handleSendMessage} className="p-4 bg-[var(--background)]/60 border-t border-[var(--border)] flex gap-3 items-center">
+                <form onSubmit={handleSendMessage} className="p-4 bg-[var(--background)]/60 border-t border-[var(--border)] flex gap-3 items-center relative">
                     <div className="flex-1 relative flex items-center">
                         <input 
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            placeholder="Type a message..."
-                            className="w-full bg-[var(--card)] border border-[var(--border)] rounded-full px-5 py-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+                            placeholder={isGuest ? "Messaging limited in guest mode" : "Type a message..."}
+                            disabled={isGuest}
+                            className="w-full bg-[var(--card)] border border-[var(--border)] rounded-full px-5 py-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all disabled:opacity-50"
                         />
                     </div>
                     <button 
                         type="submit"
-                        disabled={!input.trim()}
-                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:bg-[var(--muted)]"
+                        disabled={!input.trim() || isGuest}
+                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:bg-slate-700"
                     >
                         <Send className="w-5 h-5" />
                     </button>
@@ -413,11 +448,18 @@ export default function Chat() {
             </>
         ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-                <div className="w-24 h-24 rounded-3xl bg-[var(--card)] flex items-center justify-center mb-8 border border-[var(--border)]">
-                    <MessageSquare className="w-12 h-12 text-[var(--muted)]" />
+                <div className="w-24 h-24 rounded-3xl bg-[var(--card)] flex items-center justify-center mb-8 border border-[var(--border)] shadow-xl relative group">
+                    <MessageCircle className="w-12 h-12 text-[var(--muted)] group-hover:text-blue-500 transition-colors" />
+                    {isGuest && <ShieldAlert className="w-6 h-6 text-amber-500 absolute -top-2 -right-2" />}
                 </div>
-                <h3 className="text-2xl font-black text-[var(--foreground)] italic tracking-tight mb-2">Secure Comms Interface</h3>
-                <p className="text-[var(--muted)] max-w-sm text-sm">Select a contact from the terminal directory to start a real-time encrypted data stream.</p>
+                <h3 className="text-2xl font-black text-[var(--foreground)] italic tracking-tight mb-2 uppercase italic">Chat</h3>
+                <p className="text-[var(--muted)] max-w-sm text-sm font-medium">Select a user to start chatting.</p>
+                {isGuest && (
+                    <div className="mt-6 px-4 py-2 border border-amber-500/20 bg-amber-500/5 rounded-xl text-amber-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse">
+                        <ShieldAlert className="w-4 h-4" />
+                        Guest Mode: Demo Data Loaded
+                    </div>
+                )}
             </div>
         )}
       </div>

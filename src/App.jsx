@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Chat from './pages/Chat';
 import Community from './pages/Community';
@@ -47,27 +48,29 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <Toaster position="top-right" />
-          <ErrorBoundary FallbackComponent={ErrorFallback}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify-otp" element={<VerifyOtp />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }>
-                 <Route index element={<Dashboard />} />
-                 <Route path="tasks" element={<MyTasks />} />
-                 <Route path="admin" element={<SystemControl />} />
-                 <Route path="settings" element={<Configuration />} />
-                 <Route path="community" element={<Community />} />
-                 <Route path="profile" element={<Profile />} />
-                 <Route path="profile/:id" element={<Profile />} />
-                 <Route path="chat" element={<Chat />} />
-              </Route>
-            </Routes>
-          </ErrorBoundary>
+          <SocketProvider>
+            <Toaster position="top-right" />
+            <ErrorBoundary FallbackComponent={ErrorFallback}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/verify-otp" element={<VerifyOtp />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                   <Route index element={<Dashboard />} />
+                   <Route path="my-tasks" element={<MyTasks />} />
+                   <Route path="admin" element={<SystemControl />} />
+                   <Route path="settings" element={<Configuration />} />
+                   <Route path="community" element={<Community />} />
+                   <Route path="profile" element={<Profile />} />
+                   <Route path="profile/:id" element={<Profile />} />
+                   <Route path="chat" element={<Chat />} />
+                </Route>
+              </Routes>
+            </ErrorBoundary>
+          </SocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

@@ -1,6 +1,6 @@
 
 import clsx from 'clsx';
-import { BookOpen, Calendar, Camera, CheckCircle, FileText, Loader2, Mail, MapPin, MessageSquare, Move, Save, User as UserIcon } from 'lucide-react';
+import { BookOpen, Calendar, Camera, CheckCircle, FileText, Loader2, Mail, MapPin, MessageSquare, Move, Save, ShieldAlert, User as UserIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -22,7 +22,8 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
-  // Repositioning state
+  const isGuest = currentUser?.role === 'GUEST';
+
   const [repositionMode, setRepositionMode] = useState(null);
   const [tempPos, setTempPos] = useState({ x: 50, y: 50 });
   const [isDragging, setIsDragging] = useState(false);
@@ -45,7 +46,7 @@ export default function Profile() {
       const res = await api.get(`/users/${targetId === 'profile' ? 'profile' : targetId}`);
       setUser(res.data);
       setBio(res.data.bio || '');
-      if (isOwnProfile) {
+      if (isOwnProfile && !isGuest) {
           updateUserInfo(res.data);
       }
     } catch (err) {
@@ -109,6 +110,7 @@ export default function Profile() {
   };
 
   const handleUpdate = async () => {
+    if (isGuest) return toast.error("Guest Mode: Update restricted.");
     try {
       await api.patch('/users/profile', { bio });
       setIsEditing(false);
@@ -120,6 +122,7 @@ export default function Profile() {
   };
 
   const handleFileChange = async (e, type) => {
+    if (isGuest) return toast.error("Guest Mode: Upload restricted.");
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -150,9 +153,9 @@ export default function Profile() {
     }
   };
 
-  // Drag logic
   const handleMouseDown = (e, type) => {
       if (repositionMode !== type) return;
+      if (isGuest) return;
       setIsDragging(true);
       dragStart.current = { 
           x: e.clientX, 
@@ -164,10 +167,8 @@ export default function Profile() {
 
   const handleMouseMove = (e) => {
       if (!isDragging) return;
-      
-      const dx = (e.clientX - dragStart.current.x) / 5; // Sensitivity
+      const dx = (e.clientX - dragStart.current.x) / 5;
       const dy = (e.clientY - dragStart.current.y) / 5;
-
       setTempPos({
           x: Math.max(0, Math.min(100, dragStart.current.initialX - dx)),
           y: Math.max(0, Math.min(100, dragStart.current.initialY - dy))
@@ -179,12 +180,14 @@ export default function Profile() {
   };
 
   const startReposition = (type) => {
+      if (isGuest) return toast.error("Guest Mode: Repositioning restricted.");
       const pos = type === 'cover' ? (user.coverPosition || { x: 50, y: 50 }) : (user.avatarPosition || { x: 50, y: 50 });
       setTempPos(pos);
       setRepositionMode(type);
   };
 
   const savePosition = async () => {
+      if (isGuest) return;
       try {
           const field = repositionMode === 'cover' ? 'coverPosition' : 'avatarPosition';
           await api.patch('/users/profile', { [field]: tempPos });
@@ -237,7 +240,7 @@ export default function Profile() {
         </div>
 
         {/* Action Buttons (Cover) */}
-        {isOwnProfile && (
+        {isOwnProfile && !isGuest && (
              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                  {repositionMode === 'cover' ? (
                      <button onClick={savePosition} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2 animate-in zoom-in">
@@ -275,12 +278,12 @@ export default function Profile() {
                             style={{ objectPosition: currentAvatarPos }}
                          />
                     ) : (
-                         <div className="w-full h-full flex items-center justify-center bg-[var(--card)] text-[var(--foreground)] text-4xl font-black">
+                         <div className="w-full h-full flex items-center justify-center bg-[var(--card)] text-[var(--foreground)] text-4xl font-black italic">
                              {(user.name?.[0] || user.email[0]).toUpperCase()}
                          </div>
                     )}
 
-                     {isOwnProfile && (
+                     {isOwnProfile && !isGuest && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px]">
                              {repositionMode === 'avatar' ? (
                                   <Move className="w-8 h-8 text-white animate-pulse" />
@@ -293,7 +296,7 @@ export default function Profile() {
                      )}
                 </div>
                  
-                 {isOwnProfile && (
+                 {isOwnProfile && !isGuest && (
                     <button 
                          onClick={() => repositionMode === 'avatar' ? savePosition() : startReposition('avatar')}
                          className={clsx(
@@ -311,7 +314,12 @@ export default function Profile() {
                  <div>
                     <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-1 flex items-center gap-3">
                         {user.name || user.email.split('@')[0]}
-                        <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-lg uppercase tracking-widest font-bold border border-blue-500/30">
+                        <span className={clsx(
+                            "text-[10px] px-2 py-1 rounded-lg uppercase tracking-widest font-black border",
+                            user.role === 'ADMIN' ? "bg-rose-500/20 text-rose-400 border-rose-500/30" : 
+                            user.role === 'GUEST' ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
+                            "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        )}>
                             {user.role}
                         </span>
                     </h1>
@@ -319,7 +327,7 @@ export default function Profile() {
                         <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" /> {user.email}</span>
                         {user.address && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {user.address}</span>}
                         {user.education && <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {user.education}</span>}
-                        <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                        <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Join Date {new Date(user.createdAt).getFullYear()}</span>
                     </div>
                  </div>
 
@@ -344,10 +352,10 @@ export default function Profile() {
                   <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3 text-purple-400">
                           <FileText className="w-6 h-6" />
-                          <h2 className="text-xl font-bold text-[var(--foreground)]">About</h2>
+                           <h2 className="text-xl font-bold text-[var(--foreground)] uppercase italic tracking-tight">About Me</h2>
                       </div>
-                      {isOwnProfile && !isEditing && (
-                          <button onClick={() => setIsEditing(true)} className="text-xs font-bold text-[var(--muted)] hover:text-[var(--foreground)] uppercase tracking-widest hover:underline">Edit Bio</button>
+                      {isOwnProfile && !isEditing && !isGuest && (
+                          <button onClick={() => setIsEditing(true)} className="text-xs font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest transition-colors">Edit Bio</button>
                       )}
                   </div>
                   
@@ -356,28 +364,35 @@ export default function Profile() {
                           <textarea 
                               value={bio}
                               onChange={(e) => setBio(e.target.value)}
-                              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[150px]"
-                              placeholder="Tell us about your mission..."
+                              className="w-full bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-purple-500/50 min-h-[150px] resize-none"
+                              placeholder="Write something about yourself..."
                           />
                           <div className="flex justify-end gap-3">
                               <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--foreground)]">Cancel</button>
-                              <button onClick={handleUpdate} className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold flex items-center gap-2">
-                                  <Save className="w-4 h-4" /> Save
+                              <button onClick={handleUpdate} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                                  <Save className="w-4 h-4" /> Save Bio
                               </button>
                           </div>
                       </div>
                   ) : (
-                      <p className="text-[var(--foreground)] leading-relaxed whitespace-pre-wrap relative z-10">
-                          {bio || <span className="text-[var(--muted)] italic">No dossier available.</span>}
+                      <p className="text-[var(--foreground)] leading-relaxed whitespace-pre-wrap relative z-10 text-sm font-medium">
+                          {bio || <span className="text-[var(--muted)] italic">No bio information found.</span>}
                       </p>
+                  )}
+
+                  {isGuest && isOwnProfile && (
+                      <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+                          <ShieldAlert className="w-5 h-5 text-amber-500" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Guest accounts cannot edit their bio.</span>
+                      </div>
                   )}
               </div>
 
               {/* Activity Feed */}
               <div className="space-y-6">
-                   <h2 className="text-xl font-bold text-[var(--foreground)] mb-2 flex items-center gap-3">
+                   <h2 className="text-xl font-black text-[var(--foreground)] mb-2 flex items-center gap-3 uppercase italic tracking-tighter">
                        <MessageSquare className="w-6 h-6 text-blue-400" />
-                       Timeline
+                       Posts
                    </h2>
                    
                    {posts.length === 0 && fetchingPosts ? (
@@ -387,8 +402,8 @@ export default function Profile() {
                             <PostSkeleton />
                         </div>
                    ) : posts.length === 0 && !fetchingPosts ? (
-                        <div className="glass-card p-10 text-center">
-                            <p className="text-[var(--muted)]">No posts to show yet.</p>
+                        <div className="glass-card p-10 text-center border-dashed border-2 border-[var(--border)]">
+                             <p className="text-[var(--muted)] font-bold uppercase tracking-widest text-xs">No posts yet.</p>
                         </div>
                    ) : (
                        <div className="space-y-6">
@@ -405,7 +420,7 @@ export default function Profile() {
                            )}
                            
                            {!hasMore && posts.length > 0 && (
-                               <p className="text-center text-[var(--muted)] py-4 italic text-sm">End of timeline.</p>
+                               <p className="text-center text-[var(--muted)] py-4 italic text-xs font-black uppercase tracking-[0.3em]">No more posts</p>
                            )}
                        </div>
                    )}
@@ -414,49 +429,51 @@ export default function Profile() {
 
           <div className="space-y-6">
               {/* Profile Details Sidebar */}
-              <div className="glass-card p-6 space-y-6">
-                  <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
-                      <UserIcon className="w-3 h-3" /> User Dossier
+              <div className="glass-card p-6 space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50"></div>
+                  <h3 className="text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.2em] flex items-center gap-2">
+                      <UserIcon className="w-3 h-3 text-blue-500" /> About
                   </h3>
                   
                   <div className="space-y-4">
                       {user.address && (
-                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                              <span className="text-[10px] uppercase font-black text-blue-500 tracking-widest">Location</span>
-                              <span className="text-sm font-medium text-[var(--foreground)]">{user.address}</span>
+                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-all border border-transparent hover:border-[var(--border)]">
+                               <span className="text-[10px] uppercase font-black text-blue-500 tracking-widest opacity-70">Location</span>
+                              <span className="text-sm font-bold text-[var(--foreground)]">{user.address}</span>
                           </div>
                       )}
                       {user.education && (
-                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                              <span className="text-[10px] uppercase font-black text-purple-500 tracking-widest">Education</span>
-                              <span className="text-sm font-medium text-[var(--foreground)]">{user.education}</span>
+                          <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-all border border-transparent hover:border-[var(--border)]">
+                               <span className="text-[10px] uppercase font-black text-purple-500 tracking-widest opacity-70">Education</span>
+                              <span className="text-sm font-bold text-[var(--foreground)]">{user.education}</span>
                           </div>
                       )}
-                      <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                          <span className="text-[10px] uppercase font-black text-emerald-500 tracking-widest">Joined On</span>
-                          <span className="text-sm font-medium text-[var(--foreground)]">{new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <div className="flex flex-col gap-1 p-3 hover:bg-[var(--card-hover)] rounded-xl transition-all border border-transparent hover:border-[var(--border)]">
+                          <span className="text-[10px] uppercase font-black text-emerald-500 tracking-widest opacity-70">Joined</span>
+                          <span className="text-sm font-bold text-[var(--foreground)]">{new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                       </div>
                   </div>
               </div>
 
               {/* Performance Metrics */}
-              <div className="glass-card p-6 space-y-6">
-                  <h3 className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2">
-                      Performance Metrics
+              <div className="glass-card p-6 space-y-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/50"></div>
+                  <h3 className="text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.2em] flex items-center gap-2">
+                       Information
                   </h3>
                   
                   <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                          <span className="text-sm font-bold text-[var(--foreground)]">Task Completion</span>
-                          <span className="text-emerald-400 font-mono font-bold">98%</span>
+                           <span className="text-sm font-bold text-[var(--foreground)]">Score</span>
+                          <span className="text-emerald-400 font-mono font-black">98.4%</span>
                       </div>
                       <div className="flex justify-between items-center p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                          <span className="text-sm font-bold text-[var(--foreground)]">Efficiency Score</span>
-                          <span className="text-blue-400 font-mono font-bold">A+</span>
+                           <span className="text-sm font-bold text-[var(--foreground)]">Rank</span>
+                          <span className="text-blue-400 font-mono font-black italic">ELITE-LEVEL</span>
                       </div>
                       <div className="flex justify-between items-center p-3 hover:bg-[var(--card-hover)] rounded-xl transition-colors">
-                          <span className="text-sm font-bold text-[var(--foreground)]">Reputation</span>
-                          <span className="text-purple-400 font-mono font-bold">Elite</span>
+                          <span className="text-sm font-bold text-[var(--foreground)]">System Status</span>
+                          <span className="text-purple-400 font-mono font-black uppercase tracking-widest">Active</span>
                       </div>
                   </div>
               </div>

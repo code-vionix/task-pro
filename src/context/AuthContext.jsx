@@ -4,11 +4,14 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Only set loading to false, restore is handled below
+    // Initial load check complete
     setIsLoading(false);
   }, []);
 
@@ -35,16 +38,10 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Restore user from local storage on load
-  useEffect(() => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-          setUser(JSON.parse(storedUser));
-      }
-  }, []);
+  const [guestDataSeed, setGuestDataSeed] = useState(() => Math.floor(Math.random() * 100));
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUserInfo, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserInfo, isLoading, guestDataSeed }}>
       {children}
     </AuthContext.Provider>
   );

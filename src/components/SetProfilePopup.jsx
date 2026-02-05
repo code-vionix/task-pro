@@ -2,9 +2,11 @@
 import { Eye, EyeOff, Loader2, Lock, Save, User } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 
 export default function SetProfilePopup({ user, onComplete }) {
+    const { updateUserInfo } = useAuth();
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -29,11 +31,16 @@ export default function SetProfilePopup({ user, onComplete }) {
             });
             console.log('Profile update response:', res.data);
             
-            toast.success("Identity Secured! Welcome.");
+            // Critical: Update global auth state so isProfileSet becomes true
+            updateUserInfo(res.data);
             
-            // Short delay to ensure state propagates
+            toast.success("Profile Saved! Welcome.");
+            
+            // Short delay to ensure state propagates before closing
             setTimeout(() => {
-                onComplete();
+                if (typeof onComplete === 'function') {
+                    onComplete();
+                }
             }, 500);
         } catch (err) {
             console.error('Profile update error:', err);
@@ -52,15 +59,15 @@ export default function SetProfilePopup({ user, onComplete }) {
                     <div className="w-16 h-16 rounded-2xl premium-gradient flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20">
                         <User className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-3xl font-bold text-white tracking-tight">Access Initialized</h2>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">Complete Your Profile</h2>
                     <p className="text-slate-400 text-sm mt-3 px-4">
-                        Please establish your identity to enter the secure environment.
+                        Please fill in your details to get started.
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Full Legal Name</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
                         <div className="relative group">
                             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                             <input
@@ -75,7 +82,7 @@ export default function SetProfilePopup({ user, onComplete }) {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Universal Security Key</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-1">Password</label>
                         <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                             <input
@@ -105,7 +112,7 @@ export default function SetProfilePopup({ user, onComplete }) {
                             <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
                             <>
-                                <span>Authorize & Enter</span>
+                                <span>Save & Continue</span>
                                 <Save className="w-4 h-4" />
                             </>
                         )}
