@@ -1,57 +1,49 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import api from '../lib/api';
+import { loginSuccess, logout as logoutAction, setLoading, updateUser } from '../store/slices/authSlice';
 
 const AuthContext = createContext(undefined);
 
+/**
+ * AuthProvider now acts as a bridge between the existing useAuth hook 
+ * and the new Redux state management. This ensures backwards compatibility
+ * while moving towards a unified state store.
+ */
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-      const stored = localStorage.getItem('user');
-      return stored ? JSON.parse(stored) : null;
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { user, isLoading } = useSelector(state => state.auth);
+  const [guestDataSeed] = useState(() => Math.floor(Math.random() * 100));
 
   useEffect(() => {
     const fetchProfile = async () => {
         const token = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
         if (token) {
             try {
                 const res = await api.get('/users/profile');
-                setUser(res.data);
-                localStorage.setItem('user', JSON.stringify(res.data));
+                dispatch(loginSuccess({ access_token: token, refresh_token: refreshToken, user: res.data }));
             } catch (err) {
                 console.error("Failed to sync profile", err);
             }
         }
-        setIsLoading(false);
+        dispatch(setLoading(false));
     };
     fetchProfile();
-  }, []);
+  }, [dispatch]);
 
   const login = (token, refreshToken, userData) => {
-    localStorage.setItem('access_token', token);
-    localStorage.setItem('refresh_token', refreshToken);
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    dispatch(loginSuccess({ access_token: token, refresh_token: refreshToken, user: userData }));
   };
 
   const updateUserInfo = (userData) => {
-    setUser(prev => {
-        if (!prev) return null;
-        const updated = { ...prev, ...userData };
-        localStorage.setItem('user', JSON.stringify(updated));
-        return updated;
-    });
+    dispatch(updateUser(userData));
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    setUser(null);
+    dispatch(logoutAction());
   };
-
-  const [guestDataSeed, setGuestDataSeed] = useState(() => Math.floor(Math.random() * 100));
 
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUserInfo, isLoading, guestDataSeed }}>
