@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle, MessageSquare, Share2, X } from 'lucide-react';
+import { Bell, CheckCircle, Heart, MessageCircle, MessageSquare, Search, Share2, X, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const NOTIFICATION_ICONS = {
@@ -7,6 +7,9 @@ const NOTIFICATION_ICONS = {
   SHARE: Share2,
   TASK_ASSIGNED: Bell,
   MESSAGE: MessageCircle,
+  TASK_UNDER_REVIEW: Search,
+  TASK_APPROVED: CheckCircle,
+  TASK_REJECTED: XCircle,
   default: Bell
 };
 

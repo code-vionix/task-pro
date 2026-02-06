@@ -10,11 +10,14 @@ import Chat from './pages/Chat';
 import Community from './pages/Community';
 import Configuration from './pages/Configuration';
 import Dashboard from './pages/Dashboard';
+import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import MyTasks from './pages/MyTasks';
+import Operations from './pages/Operations';
 import Profile from './pages/Profile';
 import SinglePost from './pages/SinglePost';
 import SystemControl from './pages/SystemControl';
+import TaskDetail from './pages/TaskDetail';
 import VerifyOtp from './pages/VerifyOtp';
 
 function ProtectedRoute({ children }) {
@@ -69,6 +72,9 @@ export default function App() {
                    <Route path="profile" element={<Profile />} />
                    <Route path="profile/:id" element={<Profile />} />
                    <Route path="chat" element={<Chat />} />
+                   <Route path="task/:id" element={<TaskDetail />} />
+                   <Route path="leaderboard" element={<Leaderboard />} />
+                   <Route path="operations" element={<Operations />} />
                 </Route>
               </Routes>
             </ErrorBoundary>

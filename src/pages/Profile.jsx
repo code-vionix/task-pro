@@ -1,9 +1,12 @@
 
+import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
+import CategoryManager from '../components/profile/CategoryManager';
 import ProfileBio from '../components/profile/ProfileBio';
+import ProfileFollowList from '../components/profile/ProfileFollowList';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfilePosts from '../components/profile/ProfilePosts';
 import ProfileSidebar from '../components/profile/ProfileSidebar';
@@ -26,6 +29,10 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loadingFollow, setLoadingFollow] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
 
   const isGuest = currentUser?.role === 'GUEST';
   const isOwnProfile = !id || id === currentUser?.id;
@@ -48,6 +55,7 @@ export default function Profile() {
   useEffect(() => {
     fetchProfile();
     refreshUserPosts();
+    setActiveTab('posts');
   }, [id]);
 
   const fetchProfile = async () => {
@@ -59,6 +67,11 @@ export default function Profile() {
       setBio(res.data.bio || '');
       if (isOwnProfile && !isGuest) {
           updateUserInfo(res.data);
+      }
+      
+      // Check follow status if viewing someone else
+      if (!isOwnProfile && currentUser && !isGuest) {
+         fetchFollowStatus(targetId);
       }
     } catch (err) {
       console.error('Failed to fetch profile:', err);
@@ -188,6 +201,39 @@ export default function Profile() {
     }
   };
 
+  const fetchFollowStatus = async (targetUserId) => {
+    try {
+        const res = await api.get(`/users/${targetUserId}/followers`);
+        const followers = res.data;
+        const isFollowing = followers.some(f => f.followerId === currentUser.id);
+        setIsFollowing(isFollowing);
+    } catch (e) {
+        console.error("Failed to fetch follow status", e);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+      if (isGuest) return toast.error("Guest Mode: Restricted.");
+      setLoadingFollow(true);
+      try {
+          if (isFollowing) {
+              await api.post(`/users/${user.id}/unfollow`);
+              setIsFollowing(false);
+              toast.success(`Unfollowed ${user.name || user.email}`);
+              setUser(prev => ({ ...prev, _count: { ...prev._count, followers: (prev._count.followers || 1) - 1 } }));
+          } else {
+              await api.post(`/users/${user.id}/follow`);
+              setIsFollowing(true);
+              toast.success(`Following ${user.name || user.email}`);
+              setUser(prev => ({ ...prev, _count: { ...prev._count, followers: (prev._count.followers || 0) + 1 } }));
+          }
+      } catch (err) {
+          toast.error("Action failed");
+      } finally {
+          setLoadingFollow(false);
+      }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="w-10 h-10 animate-spin text-blue-500" /></div>;
   if (!user) return <div className="text-center py-20 text-[var(--muted)] font-black uppercase tracking-widest">Entity Not Found</div>;
 
@@ -212,13 +258,13 @@ export default function Profile() {
         tempPos={tempPos}
         handleMouseDown={handleMouseDown}
         savePosition={handleSavePosition}
+        isFollowing={isFollowing}
+        onFollow={handleFollowToggle}
+        loadingFollow={loadingFollow}
       />
 
-      {/* 2. Main Layout (Bio & Feed vs Sidebar) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-20">
         <div className="lg:col-span-2 space-y-8">
-          
-          {/* Autobiography Section */}
           <ProfileBio 
             user={user}
             isOwnProfile={isOwnProfile}
@@ -230,20 +276,50 @@ export default function Profile() {
             onSave={handleUpdateBio}
           />
 
-          {/* User's Transmission Stream */}
-          <ProfilePosts 
-            posts={posts}
-            fetchingPosts={fetchingPosts}
-            page={page}
-            hasMore={hasMore}
-            lastPostElementRef={lastPostElementRef}
-            onRefresh={refreshUserPosts}
-            currentUser={currentUser}
-          />
+          <div className="flex gap-1 p-1 bg-[var(--card)]/50 border border-[var(--border)] rounded-2xl w-fit">
+            {[
+              { id: 'posts', label: 'Posts' },
+              { id: 'followers', label: 'Followers' },
+              { id: 'following', label: 'Following' }
+            ].map(tab => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={clsx(
+                  "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeTab === tab.id ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'posts' ? (
+            <ProfilePosts 
+              posts={posts}
+              fetchingPosts={fetchingPosts}
+              page={page}
+              hasMore={hasMore}
+              lastPostElementRef={lastPostElementRef}
+              onRefresh={refreshUserPosts}
+              currentUser={currentUser}
+            />
+          ) : (
+            <ProfileFollowList 
+              userId={user.id} 
+              type={activeTab} 
+              currentUserId={currentUser?.id} 
+            />
+          )}
         </div>
 
-        {/* Informational Sidebar */}
-        <ProfileSidebar user={user} />
+        <div className="space-y-8">
+          {isOwnProfile && currentUser?.role === 'USER' && (
+             <CategoryManager user={user} onUpdate={(updated) => { setUser(updated); updateUserInfo(updated); }} />
+          )}
+          <ProfileSidebar user={user} />
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 
+import clsx from 'clsx';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,6 +25,7 @@ export default function Community() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [fetchingPosts, setFetchingPosts] = useState(false);
+  const [feedView, setFeedView] = useState('following'); // Default to 'following' as requested
   const observer = useRef();
   
   const isGuest = user?.role === 'GUEST';
@@ -35,7 +37,6 @@ export default function Community() {
 
   /**
    * Intersection Observer for infinite scrolling.
-   * Triggers when the last element enters the viewport.
    */
   const lastPostElementRef = useCallback(node => {
     if (fetchingPosts || isRestricted) return;
@@ -62,7 +63,8 @@ export default function Community() {
     
     setFetchingPosts(true);
     try {
-      const res = await api.get(`/posts?page=${pageNum}&limit=${POSTS_PER_PAGE}`);
+      const followingParam = feedView === 'following' ? '&following=true' : '';
+      const res = await api.get(`/posts?page=${pageNum}&limit=${POSTS_PER_PAGE}${followingParam}`);
       const newPosts = res.data;
       
       if (isInitial) {
@@ -84,10 +86,12 @@ export default function Community() {
     }
   };
 
-  // Initial load
+  // Initial load or view change
   useEffect(() => {
+    setPage(1);
+    setHasMore(true);
     fetchPosts(1, true);
-  }, [isRestricted]);
+  }, [isRestricted, feedView]);
 
   // Load more when page changes
   useEffect(() => {
@@ -115,11 +119,34 @@ export default function Community() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-700">
-      <header className="flex justify-between items-center bg-transparent">
-        <h1 className="text-3xl font-extrabold text-[var(--foreground)] tracking-tight italic">
-            Community <span className="text-blue-500">Hub</span>
-        </h1>
-        {fetchingPosts && page === 1 && <Loader2 className="w-5 h-5 animate-spin text-blue-500" />}
+      <header className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-extrabold text-[var(--foreground)] tracking-tight italic">
+              Community <span className="text-blue-500">Hub</span>
+          </h1>
+          {fetchingPosts && page === 1 && <Loader2 className="w-5 h-5 animate-spin text-blue-500" />}
+        </div>
+
+        <div className="flex gap-2 p-1 bg-[var(--card)]/50 border border-[var(--border)] rounded-2xl w-fit">
+          <button 
+            onClick={() => setFeedView('following')}
+            className={clsx(
+              "px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+              feedView === 'following' ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            Following
+          </button>
+          <button 
+            onClick={() => setFeedView('all')}
+            className={clsx(
+              "px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+              feedView === 'all' ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20" : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            Global
+          </button>
+        </div>
       </header>
       
       {/* 1. Post Creation Interface */}

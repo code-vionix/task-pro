@@ -19,7 +19,10 @@ export default function ProfileHeader({
   setRepositionMode,
   tempPos,
   handleMouseDown,
-  savePosition
+  savePosition,
+  isFollowing,
+  onFollow,
+  loadingFollow
 }) {
   const navigate = useNavigate();
 
@@ -149,16 +152,39 @@ export default function ProfileHeader({
               {user.education && <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4" /> {user.education}</span>}
               <span className="hidden sm:flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Member since {new Date(user.createdAt).getFullYear()}</span>
             </div>
+            
+            <div className="flex gap-6 mt-4">
+              <div className="flex flex-col">
+                <span className="text-xl font-black text-[var(--foreground)]">{user._count?.followers || 0}</span>
+                <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Followers</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-black text-[var(--foreground)]">{user._count?.following || 0}</span>
+                <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-widest">Following</span>
+              </div>
+            </div>
           </div>
 
           {!isOwnProfile && (
-            <button 
-              onClick={() => navigate(`/chat?user=${user.id}`)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 active:scale-95"
-            >
-              <MessageSquare className="w-5 h-5" />
-              Message
-            </button>
+            <div className="flex items-center gap-3">
+               <button 
+                onClick={onFollow}
+                disabled={loadingFollow}
+                className={clsx(
+                   "px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 active:scale-95",
+                   isFollowing ? "bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+                )}
+              >
+                {loadingFollow ? <Loader2 className="w-5 h-5 animate-spin" /> : isFollowing ? 'Following' : 'Follow'}
+              </button>
+              <button 
+                onClick={() => navigate(`/chat?user=${user.id}`)}
+                className="bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--card-hover)] px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 active:scale-95"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Message
+              </button>
+            </div>
           )}
         </div>
       </div>
