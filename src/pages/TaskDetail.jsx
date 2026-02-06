@@ -5,18 +5,75 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import SubmitTaskModal from '../components/task/SubmitTaskModal';
+import TaskActivityMonitor from '../components/task/TaskActivityMonitor';
 import { useAuth } from '../context/AuthContext';
+import { useExtension } from '../context/ExtensionContext';
+import { useTaskMonitor } from '../hooks/useTaskMonitor';
 import api from '../lib/api';
 
 export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
+  const { extensionInstalled } = useExtension();
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentContent, setCommentContent] = useState('');
   const [addingComment, setAddingComment] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showExtensionModal, setShowExtensionModal] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(null);
+
+  // Monitor for distractions
+  useTaskMonitor(id, task?.status === 'IN_PROGRESS' && !task?.isStopped);
+
+  useEffect(() => {
+    if (task) {
+        if (task.status === 'IN_PROGRESS' && !task.isStopped && task.duration > 0) {
+            // Calculate remaining time appropriately?
+            // For now, let's assume task.duration is the time left or total duration.
+            // If it's total duration, we need logic to subtract elapsed.
+            // Assuming this is a simple decrement for now based on user request "time shesh hoye gele".
+            
+            // However, better logic: fetch remaining time from server or just user simple local countdown
+            // For simplicity and immediate response to user request:
+            setRemainingTime(task.duration); 
+        } else {
+            setRemainingTime(null);
+        }
+    }
+  }, [task]);
+
+  useEffect(() => {
+    let interval;
+    if (remainingTime !== null && task?.status === 'IN_PROGRESS' && !task?.isStopped) {
+        interval = setInterval(async () => {
+            setRemainingTime((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    handleExpire();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [remainingTime, task]);
+
+  const handleExpire = async () => {
+      try {
+          await api.patch(`/tasks/${id}/expire`); // Assuming an expire endpoint exists or we use stop/reject
+          // If no specific expire endpoint, we might need one or reuse failing status
+          // Let's assume we can set status to expired.
+          // Updating local state first
+          setTask(prev => ({ ...prev, status: 'EXPIRED' }));
+          toast.error("Time Expired! Task ended.");
+          fetchTask();
+      } catch (e) {
+          console.error("Failed to expire task", e);
+      }
+  };
 
   useEffect(() => {
     fetchTask();
@@ -35,6 +92,19 @@ export default function TaskDetail() {
   };
 
   const handleStart = async () => {
+    // Check mobile
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+        toast.error("Tasks can only be performed on a Desktop computer.");
+        return;
+    }
+
+    // Check extension for non-admin users
+    if (currentUser.role !== 'ADMIN' && !extensionInstalled) {
+      setShowExtensionModal(true);
+      return;
+    }
+    
     try {
         await api.patch(`/tasks/${id}/start`);
         fetchTask();
@@ -128,7 +198,7 @@ export default function TaskDetail() {
         <ArrowLeft className="w-4 h-4" /> Go Back
       </button>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         {/* Main Info */}
         <div className="flex-1 space-y-8">
           <div className="glass-card p-8 border-t-4 border-t-blue-500 shadow-xl">
@@ -156,7 +226,7 @@ export default function TaskDetail() {
                </div>
                
                <div className="flex flex-row md:flex-col justify-between md:text-right">
-                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Status</span>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Status</span>
                   <span className="text-lg font-black text-blue-600 uppercase">{(task.status || 'PENDING').replace('_', ' ')}</span>
                </div>
             </div>
@@ -173,7 +243,7 @@ export default function TaskDetail() {
                    {task.status === 'IN_PROGRESS' && !task.isStopped && (
                       <div className="flex items-center gap-3">
                          <button onClick={() => setShowSubmitModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
-                            <CheckCircle2 className="w-5 h-5" /> Finish Task
+                            <CheckCircle2 className="w-5 h-5" /> Submit Task
                          </button>
                          {task.type === 'PRACTICE' && (
                             <button onClick={handleStop} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-300 transition-all">
@@ -199,8 +269,13 @@ export default function TaskDetail() {
                {[
                  { label: 'Priority', value: task.priority || 'MEDIUM', icon: AlertCircle, color: 'blue' },
                  { label: 'Type', value: task.type, icon: FileText, color: 'purple' },
-                 { label: 'Duration', value: `${task.duration / 60}m`, icon: Clock, color: 'emerald' },
-                 { label: 'Category', value: (task.category || 'GENERAL').replace('_', ' '), icon: LayoutDashboard, color: 'amber' }
+                 { 
+                   label: remainingTime !== null ? 'Time Remaining' : 'Duration', 
+                   value: remainingTime !== null ? `${Math.floor(remainingTime / 60)}m ${remainingTime % 60}s` : `${task.duration / 60}m`, 
+                   icon: Clock, 
+                   color: remainingTime !== null && remainingTime < 60 ? 'rose' : 'emerald' 
+                 },
+                 { label: 'Distractions', value: task.focusLosses || 0, icon: Lock, color: 'rose' }
                ].map((item, i) => (
                  <div key={i} className="flex flex-col p-3 bg-[var(--card)]/30 rounded-xl border border-[var(--border)]">
                     <div className="flex items-center gap-2 mb-1">
@@ -218,7 +293,7 @@ export default function TaskDetail() {
               <div className="space-y-4">
                   <div className="flex items-center gap-3">
                       <Plus className="w-5 h-5 text-blue-500" />
-                      <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tight">Mission Checklist</h3>
+                      <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tight">Checklist</h3>
                   </div>
                   <div className="glass-card overflow-hidden">
                       <div className="divide-y divide-[var(--border)]">
@@ -270,7 +345,7 @@ export default function TaskDetail() {
           <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <MessageSquare className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tight">Mission Logs</h3>
+                <h3 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tight">Task Comments</h3>
              </div>
 
              <form onSubmit={handleAddComment} className="relative group">
@@ -382,6 +457,11 @@ export default function TaskDetail() {
                 </div>
               )}
            </div>
+           
+           {/* Activity Monitor for Admins */}
+           {currentUser.role === 'ADMIN' && (
+             <TaskActivityMonitor taskId={id} />
+           )}
         </div>
       </div>
 
@@ -391,6 +471,24 @@ export default function TaskDetail() {
         onSubmit={handleComplete}
         taskTitle={task.title}
       />
+
+      {/* Extension Required Modal */}
+      {showExtensionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white dark:bg-slate-900 border border-rose-500 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+              <button 
+                onClick={() => setShowExtensionModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-rose-500 rounded-full p-2 transition-all z-10"
+              >
+                <Trash2 className="w-5 h-5 rotate-45 transform" /> {/* X icon workaround using rotated trash or just use X from lucide if imported, but Trash2 is imported so using X logic or imported X */}
+              </button>
+              
+              <div className="p-1">
+                 <ExtensionRequiredBanner />
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

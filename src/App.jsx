@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ExtensionProvider } from './context/ExtensionContext';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Chat from './pages/Chat';
@@ -52,8 +53,9 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <SocketProvider>
-            <Toaster position="top-right" />
+          <ExtensionProvider>
+            <SocketProvider>
+              <Toaster position="top-right" />
             <ErrorBoundary FallbackComponent={ErrorFallback}>
               <Routes>
                 <Route path="/login" element={<Login />} />
@@ -78,7 +80,8 @@ export default function App() {
                 </Route>
               </Routes>
             </ErrorBoundary>
-          </SocketProvider>
+            </SocketProvider>
+          </ExtensionProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
