@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import MyTasks from './pages/MyTasks';
 import Profile from './pages/Profile';
+import SinglePost from './pages/SinglePost';
 import SystemControl from './pages/SystemControl';
 import VerifyOtp from './pages/VerifyOtp';
 
@@ -54,6 +55,7 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/verify-otp" element={<VerifyOtp />} />
+                <Route path="/posts/:id" element={<SinglePost />} />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Layout />

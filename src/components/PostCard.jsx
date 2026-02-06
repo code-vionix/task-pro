@@ -7,6 +7,7 @@ import PostComments from './post/PostComments';
 import PostContent from './post/PostContent';
 import PostHeader from './post/PostHeader';
 import PostReactorsModal from './post/PostReactorsModal';
+import PostShareModal from './post/PostShareModal';
 
 /**
  * PostCard refactored into smaller sub-components for better readability and maintenance.
@@ -17,6 +18,7 @@ export function PostCard({ post, onUpdate, currentUser }) {
   const [localReactions, setLocalReactions] = useState(post.reactions || []);
   const [localCommentCount, setLocalCommentCount] = useState(post._count?.comments || 0);
   const [showReactorsModal, setShowReactorsModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   const isGuest = currentUser?.role === 'GUEST';
 
@@ -105,6 +107,7 @@ export function PostCard({ post, onUpdate, currentUser }) {
         onUpdate={handleUpdatePost} 
         onDelete={handleDeletePost} 
         onShare={handleSharePost}
+        onExternalShare={() => setShowShareModal(true)}
         isGuest={isGuest}
       />
 
@@ -139,6 +142,14 @@ export function PostCard({ post, onUpdate, currentUser }) {
         <PostReactorsModal 
           reactions={localReactions} 
           onClose={() => setShowReactorsModal(false)} 
+        />
+      )}
+
+      {/* 6. Share Modal */}
+      {showShareModal && (
+        <PostShareModal 
+          post={post} 
+          onClose={() => setShowShareModal(false)} 
         />
       )}
     </div>

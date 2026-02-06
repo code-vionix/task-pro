@@ -1,10 +1,9 @@
 
 import { Edit2, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
-export default function PostHeader({ post, currentUser, onUpdate, onDelete, onShare, isGuest }) {
+export default function PostHeader({ post, currentUser, onUpdate, onDelete, onShare, onExternalShare, isGuest }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -84,21 +83,22 @@ export default function PostHeader({ post, currentUser, onUpdate, onDelete, onSh
             <button 
               onClick={() => {
                 setShowMenu(false);
-                onShare();
+                if (window.confirm('Repost this to your feed?')) {
+                     onShare(); // This corresponds to the prop passed for internal share (repost)
+                }
               }}
               className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--foreground)] hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
             >
-              <Share2 className="w-4 h-4" /> Share
+              <Share2 className="w-4 h-4" /> Repost
             </button>
             <button 
               onClick={() => {
                 setShowMenu(false);
-                navigator.clipboard.writeText(`${window.location.origin}/community#post-${post.id}`);
-                toast.success('Link copied to clipboard!');
+                onExternalShare();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--foreground)] hover:bg-[var(--card-hover)] transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--foreground)] hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
             >
-              <Share2 className="w-4 h-4" /> Copy Link
+              <Share2 className="w-4 h-4" /> Share External
             </button>
           </div>
         )}
