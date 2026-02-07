@@ -9,6 +9,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { MessagesModule } from './messages/messages.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PostsModule } from './posts/posts.module';
+import { RemoteControlModule } from './remote-control/remote-control.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     MessagesModule,
     ChatModule,
     NotificationsModule,
+    RemoteControlModule,
   ],
   controllers: [AppController],
   providers: [

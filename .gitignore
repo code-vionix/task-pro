@@ -42,6 +42,9 @@ lerna-debug.log*
 .env.production.local
 .env.local
 client/
+RemoteControlApp/
+chrome-extension/
+
 # temp directory
 .temp
 .tmp

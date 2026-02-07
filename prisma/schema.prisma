@@ -79,6 +79,9 @@ model User {
   // Category System
   category           String?   // WEB_DEV, SOCIAL_MEDIA, etc.
   lastCategoryUpdate DateTime? // Monthly change limit
+
+  // Remote Control
+  registeredDevices  RegisteredDevice[]
 }
 
 model Follow {
@@ -259,4 +262,79 @@ model Notification {
   isRead    Boolean  @default(false)
   data      Json?    // Optional data like link, postId, etc.
   createdAt DateTime @default(now())
+}
+
+// Remote Control System
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+}
+
+model RegisteredDevice {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName    String
+  deviceModel   String?
+  osVersion     String?
+  appVersion    String?
+  deviceId      String        @unique // Unique device identifier
+  status        DeviceStatus  @default(OFFLINE)
+  lastSeen      DateTime      @default(now())
+  socketId      String?       // Current socket connection ID
+  fcmToken      String?       // For push notifications
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sessions      RemoteSession[]
+}
+
+model RemoteSession {
+  id            String           @id @default(uuid())
+  deviceId      String
+  device        RegisteredDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  startedAt     DateTime         @default(now())
+  endedAt       DateTime?
+  isActive      Boolean          @default(true)
+  webSocketId   String?          // Web client socket ID
+  peerConnection Json?           // WebRTC connection details
+  commands      RemoteCommand[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+enum CommandType {
+  SCREEN_SHARE_START
+  SCREEN_SHARE_STOP
+  TOUCH_EVENT
+  KEY_EVENT
+  FILE_TRANSFER
+  GET_NOTIFICATIONS
+  SEND_SMS
+  MAKE_CALL
+  OPEN_APP
+  CUSTOM
+}
+
+enum CommandStatus {
+  PENDING
+  EXECUTING
+  COMPLETED
+  FAILED
+}
+
+model RemoteCommand {
+  id            String         @id @default(uuid())
+  sessionId     String
+  session       RemoteSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  type          CommandType
+  payload       Json?          // Command parameters
+  status        CommandStatus  @default(PENDING)
+  result        Json?          // Command result
+  error         String?
+  createdAt     DateTime       @default(now())
+  executedAt    DateTime?
+  completedAt   DateTime?
 }
