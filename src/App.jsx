@@ -10,6 +10,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import Chat from './pages/Chat';
 import Community from './pages/Community';
 import Configuration from './pages/Configuration';
+import Controlled from './pages/Controlled';
 import Dashboard from './pages/Dashboard';
 import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
@@ -77,6 +78,7 @@ export default function App() {
                    <Route path="task/:id" element={<TaskDetail />} />
                    <Route path="leaderboard" element={<Leaderboard />} />
                    <Route path="operations" element={<Operations />} />
+                   <Route path="controlled" element={<Controlled />} />
                 </Route>
               </Routes>
             </ErrorBoundary>
