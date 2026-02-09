@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
     AlertCircle,
+    ArrowLeft,
     BatteryMedium,
     Bell,
     Camera,
@@ -8,6 +9,7 @@ import {
     ChevronRight,
     Cpu,
     Download,
+    FileText,
     Folder,
     Image,
     LayoutGrid,
@@ -28,7 +30,7 @@ import {
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://taskprobackend.codevionix.com';
 
 export default function Controlled() {
   const [devices, setDevices] = useState([]);
@@ -36,6 +38,7 @@ export default function Controlled() {
   const [session, setSession] = useState(null);
   const [socket, setSocket] = useState(null);
   const [screenFrame, setScreenFrame] = useState(null);
+  const [cameraFrame, setCameraFrame] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [notificationsList, setNotificationsList] = useState([]);
@@ -47,6 +50,10 @@ export default function Controlled() {
   const [currentPath, setCurrentPath] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [recordedAudio, setRecordedAudio] = useState(null);
+  const [pendingCommands, setPendingCommands] = useState(new Set());
+  const [currentCameraFacing, setCurrentCameraFacing] = useState(0); // 0: back, 1: front
+  const [isAutoSync, setIsAutoSync] = useState(false);
+  const [connectingDevice, setConnectingDevice] = useState(null);
 
   useEffect(() => {
     fetchDevices();
@@ -56,10 +63,14 @@ export default function Controlled() {
     if (socket && session) {
       const interval = setInterval(() => {
         sendCommand('GET_STATS');
-      }, 10000);
+        // If camera is active and autoSync is on, refresh the stream start
+        if (cameraFrame && isAutoSync) {
+          sendCommand('CAMERA_STREAM_START', { facing: currentCameraFacing });
+        }
+      }, 500); // Set to 500ms (1/2 second) as preferred by user
       return () => clearInterval(interval);
     }
-  }, [socket, session]);
+  }, [socket, session, cameraFrame, isAutoSync, currentCameraFacing]);
 
   const fetchDevices = async () => {
     try {
@@ -75,6 +86,8 @@ export default function Controlled() {
 
   const connectToDevice = async (deviceId) => {
     setLoading(true);
+    setScreenFrame(null);
+    setCameraFrame(null);
     try {
       const token = localStorage.getItem('access_token');
       const newSocket = io(`${API_URL}/remote-control`, {
@@ -84,25 +97,34 @@ export default function Controlled() {
       setSocket(newSocket);
 
       const startSession = () => {
+        setConnectingDevice(deviceId); // Track which device is connecting
         newSocket.emit('session:start', { deviceId }, (response) => {
           if (response.success) {
             setSession(response.session);
             setSelectedDevice(deviceId);
+            // Fetch initial stats immediately
+            newSocket.emit('command:send', {
+              sessionId: response.session.id,
+              type: 'GET_STATS',
+              payload: {}
+            });
           } else {
             alert('Failed to start session: ' + response.error);
           }
           setLoading(false);
+          setConnectingDevice(null);
         });
       };
 
-      if (newSocket.connected) {
-        startSession();
-      } else {
         newSocket.on('connect', () => {
-          console.log('Socket connected, starting session...');
+          console.log('Socket connected successfully');
           startSession();
         });
-      }
+
+      newSocket.on('connect_error', (err) => {
+        console.error('Socket connection error:', err);
+        setLoading(false);
+      });
 
       newSocket.on('session:status', (data) => {
         if (data.accepted) {
@@ -114,20 +136,47 @@ export default function Controlled() {
       });
 
       newSocket.on('screen:frame', (data) => {
-        setScreenFrame(data.frame);
+        // console.log(`Frame received: ${data.type}`);
+        if (data.type === 'camera') {
+          setCameraFrame(data.frame);
+        } else {
+          setScreenFrame(data.frame);
+        }
       });
 
       newSocket.on('command:completed', (data) => {
-        console.log('Command completed:', data);
+        console.log('Command completed event received:', data);
         setLastCommandStatus(data);
+        
+        // Remove from pending commands
+        setPendingCommands(prev => {
+          const next = new Set(prev);
+          next.delete(data.commandId);
+          return next;
+        });
         
         if (data.type === 'GET_NOTIFICATIONS' && data.result) {
           setNotificationsList(data.result);
           setShowNotificationsModal(true);
         }
 
+        if (data.type === 'GET_GALLERY' && data.result) {
+          setFiles(data.result);
+          setShowFileExplorer(true);
+          setCurrentPath('Image Gallery');
+        }
+
+        if (data.type === 'VIEW_FILE' && data.result) {
+          setCapturedPhoto(`data:image/jpeg;base64,${data.result}`);
+        }
+
         if (data.type === 'GET_STATS' && data.result) {
-          setSystemStats(data.result);
+          console.log('Stats received:', data.result);
+          setSystemStats({
+            battery: data.result.battery || 0,
+            storageUsed: data.result.storageUsed || 0,
+            storageAvailable: data.result.storageAvailable || 0
+          });
         }
 
         if (data.type === 'GET_FILES' && data.result) {
@@ -159,10 +208,17 @@ export default function Controlled() {
     setSession(null);
     setSelectedDevice(null);
     setScreenFrame(null);
+    setCameraFrame(null);
+    setPendingCommands(new Set());
   };
 
   const sendCommand = (type, payload = {}) => {
     if (!socket || !session) return;
+
+    // We don't have the command ID yet, but the server will return it or we can generate one
+    // Let's generate a temporary ID to track the UI loading state
+    const tempId = Math.random().toString(36).substring(7);
+    setPendingCommands(prev => new Set(prev).add(tempId));
 
     socket.emit(
       'command:send',
@@ -174,6 +230,19 @@ export default function Controlled() {
       (response) => {
         if (!response.success) {
           alert('Command failed: ' + response.error);
+          setPendingCommands(prev => {
+            const next = new Set(prev);
+            next.delete(tempId);
+            return next;
+          });
+        } else {
+            // Replace tempId with actual commandId if provided
+            setPendingCommands(prev => {
+                const next = new Set(prev);
+                next.delete(tempId);
+                if (response.commandId) next.add(response.commandId);
+                return next;
+            });
         }
       }
     );
@@ -226,8 +295,8 @@ export default function Controlled() {
         desc: 'Camera access and live media sync',
         color: 'purple',
         actions: [
-          { id: 'camera', label: 'Live Camera', icon: <Camera size={18} />, action: 'camera' },
-          { id: 'photos', label: 'Image Gallery', icon: <Image size={18} />, action: 'gallery' },
+          { id: 'camera', label: 'Live CCTV Feed', icon: <Camera size={18} />, action: 'camera_stream' },
+          { id: 'photos', label: 'Image Gallery', icon: <Image size={18} />, altType: 'GET_GALLERY' },
           { id: 'files', label: 'File Browser', icon: <Folder size={18} />, action: 'files' },
         ],
       },
@@ -290,7 +359,50 @@ export default function Controlled() {
               <div className="relative mx-auto w-full max-w-[320px] aspect-[9/18.5] bg-slate-900 rounded-[3rem] p-3 border-4 border-slate-800 shadow-2xl overflow-hidden shadow-blue-900/10">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-30"></div>
                 <div className="w-full h-full rounded-[2.5rem] bg-slate-950 overflow-hidden relative border border-slate-800/50">
-                  {screenFrame ? (
+                  {cameraFrame ? (
+                    <div className="relative w-full h-full">
+                       <img 
+                        src={`data:image/jpeg;base64,${cameraFrame}`} 
+                        className="w-full h-full object-cover" 
+                        alt="Camera Stream" 
+                      />
+                       <div className="absolute top-6 right-6 flex items-center gap-2">
+                         <button 
+                           onClick={() => {
+                             sendCommand('CAMERA_STREAM_STOP');
+                             setCameraFrame(null);
+                           }}
+                           className="p-2 rounded-lg bg-red-600/80 hover:bg-red-700 text-white shadow-lg transition-all"
+                           title="Stop Live Feed"
+                         >
+                           <Square size={14} fill="currentColor" />
+                         </button>
+                       </div>
+
+                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-slate-900/80 p-2 rounded-2xl border border-white/10 backdrop-blur-md">
+                          <button 
+                            onClick={() => {
+                              const nextFacing = currentCameraFacing === 0 ? 1 : 0;
+                              setCurrentCameraFacing(nextFacing);
+                              sendCommand('CAMERA_STREAM_START', { facing: nextFacing });
+                            }}
+                            className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase"
+                          >
+                            <RefreshCw size={16} className={pendingCommands.size > 0 ? 'animate-spin' : ''} />
+                            {currentCameraFacing === 0 ? 'Front' : 'Back'}
+                          </button>
+                          
+                          <div className="w-px h-6 bg-white/10"></div>
+                          
+                          <button 
+                            onClick={() => setIsAutoSync(!isAutoSync)}
+                            className={`p-2 rounded-xl text-[10px] font-bold uppercase transition-all ${isAutoSync ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'}`}
+                          >
+                            {isAutoSync ? 'Sync ON' : 'Sync OFF'}
+                          </button>
+                       </div>
+                    </div>
+                  ) : screenFrame ? (
                     <img 
                       src={`data:image/jpeg;base64,${screenFrame}`} 
                       className="w-full h-full object-cover" 
@@ -372,8 +484,11 @@ export default function Controlled() {
                               <button
                                 key={act.id}
                                 onClick={() => {
-                                  if (act.action === 'gallery' || act.action === 'files') {
+                                  if (act.action === 'files') {
                                     browseFiles();
+                                  } else if (act.action === 'camera_stream') {
+                                    cameraFrame ? sendCommand('CAMERA_STREAM_STOP') : sendCommand('CAMERA_STREAM_START');
+                                    if (cameraFrame) setCameraFrame(null);
                                   } else if (act.action === 'camera') {
                                     sendCommand('CAMERA_CAPTURE');
                                   } else if (act.action === 'mic') {
@@ -392,7 +507,11 @@ export default function Controlled() {
                                    </div>
                                    <span className="text-xs font-bold text-slate-300 group-hover/btn:text-white">{act.label}</span>
                                 </div>
-                                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover/btn:translate-x-1 group-hover/btn:text-blue-500 transition-all" />
+                                {pendingCommands.size > 0 ? (
+                                    <RefreshCw className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                                ) : (
+                                    <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover/btn:translate-x-1 group-hover/btn:text-blue-500 transition-all" />
+                                )}
                               </button>
                             ))}
                          </div>
@@ -530,28 +649,37 @@ export default function Controlled() {
                </div>
                
                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                  <div className="grid grid-cols-1 gap-2">
-                    {files.map((file, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => file.isDir && browseFiles(file.path)}
-                        className={`group p-4 rounded-2xl border border-white/[0.03] hover:border-indigo-500/30 transition-all flex items-center justify-between ${file.isDir ? 'bg-indigo-500/5 cursor-pointer' : 'bg-white/[0.02]'}`}
-                      >
-                         <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl ${file.isDir ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700/30 text-slate-500'}`}>
-                               {file.isDir ? <Folder className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                            </div>
-                            <div>
-                               <p className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{file.name}</p>
-                               <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">
-                                  {file.isDir ? 'Directory' : `${(file.size / 1024).toFixed(1)} KB`}
-                               </p>
-                            </div>
-                         </div>
-                         {file.isDir && <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-indigo-500 transition-all" />}
-                      </div>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {files.map((file, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => {
+                        if (file.isDir) {
+                          browseFiles(file.path);
+                        } else {
+                          const ext = file.name.split('.').pop().toLowerCase();
+                          if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                            sendCommand('VIEW_FILE', { path: file.path });
+                          }
+                        }
+                      }}
+                      className={`group p-4 rounded-2xl border border-white/[0.03] hover:border-indigo-500/30 transition-all flex items-center justify-between ${file.isDir || ['jpg', 'jpeg', 'png', 'webp'].includes(file.name.split('.').pop().toLowerCase()) ? 'bg-indigo-500/5 cursor-pointer' : 'bg-white/[0.02]'}`}
+                    >
+                       <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${file.isDir ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700/30 text-slate-500'}`}>
+                             {file.isDir ? <Folder className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                          </div>
+                          <div>
+                             <p className="text-sm font-bold text-slate-200 group-hover:text-white transition-colors">{file.name}</p>
+                             <p className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">
+                                {file.isDir ? 'Directory' : `${(file.size / 1024).toFixed(1)} KB`}
+                             </p>
+                          </div>
+                       </div>
+                       {(file.isDir || ['jpg', 'jpeg', 'png', 'webp'].includes(file.name.split('.').pop().toLowerCase())) && <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-indigo-500 transition-all" />}
+                    </div>
+                  ))}
+                </div>
                </div>
 
                <div className="p-8 bg-black/20 flex justify-between items-center">
@@ -722,7 +850,7 @@ export default function Controlled() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Monitor className="w-5 h-5" />
-                  {loading ? 'Connecting...' : 'Connect'}
+                  {connectingDevice === device.id ? 'Connecting...' : 'Connect'}
                 </button>
               </div>
             ))}
