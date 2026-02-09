@@ -29,7 +29,7 @@ export default function RemoteControl() {
 
   const fetchDevices = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const response = await axios.get(`${API_URL}/remote-control/devices`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -43,7 +43,7 @@ export default function RemoteControl() {
     setLoading(true);
     try {
       // Connect to WebSocket
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       const newSocket = io(`${API_URL}/remote-control`, {
         auth: { token },
       });
@@ -118,7 +118,7 @@ export default function RemoteControl() {
     if (!confirm('Are you sure you want to remove this device?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       await axios.delete(`${API_URL}/remote-control/devices/${deviceId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
