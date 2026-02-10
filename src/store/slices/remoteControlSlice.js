@@ -18,6 +18,8 @@ const initialState = {
   connectingDeviceId: null,
   showFileExplorer: false,
   showNotificationsModal: false,
+  thumbnails: {}, // Cache for image thumbnails
+  lastViewedPath: null, // Track current high-res image path for navigation
 };
 
 const remoteControlSlice = createSlice({
@@ -72,6 +74,13 @@ const remoteControlSlice = createSlice({
     setShowNotificationsModal: (state, action) => {
       state.showNotificationsModal = action.payload;
     },
+    setThumbnail: (state, action) => {
+      const { path, data } = action.payload;
+      state.thumbnails[path] = data;
+    },
+    setLastViewedPath: (state, action) => {
+      state.lastViewedPath = action.payload;
+    },
     addPendingCommand: (state, action) => {
       const { type } = action.payload;
       state.pendingCommands[type] = true;
@@ -85,9 +94,11 @@ const remoteControlSlice = createSlice({
       state.selectedDeviceId = null;
       state.screenFrame = null;
       state.cameraFrame = null;
+      state.thumbnails = {}; // Clear cache on session end
       state.pendingCommands = {};
       state.showFileExplorer = false;
       state.showNotificationsModal = false;
+      state.lastViewedPath = null;
     }
   },
 });
@@ -109,8 +120,10 @@ export const {
   setCurrentCameraFacing,
   setShowFileExplorer,
   setShowNotificationsModal,
+  setThumbnail,
   addPendingCommand,
   removePendingCommand,
+  setLastViewedPath,
   resetSession
 } = remoteControlSlice.actions;
 

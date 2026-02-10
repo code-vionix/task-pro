@@ -12,6 +12,7 @@ import {
     setCurrentPath,
     setDevices,
     setFiles,
+    setLastViewedPath,
     setLoading,
     setNotifications,
     setScreenFrame,
@@ -19,7 +20,8 @@ import {
     setSession,
     setShowFileExplorer,
     setShowNotificationsModal,
-    setSystemStats
+    setSystemStats,
+    setThumbnail
 } from '../store/slices/remoteControlSlice';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://taskprobackend.codevionix.com';
@@ -122,7 +124,13 @@ export const useRemoteControl = () => {
             }
             break;
           case 'VIEW_FILE':
-            if (data.result) dispatch(setCapturedPhoto(`data:image/jpeg;base64,${data.result}`));
+            console.log('[useRemoteControl] VIEW_FILE result received. Path:', data.path, 'Data size:', data.result?.length);
+            if (data.result) {
+              dispatch(setCapturedPhoto(`data:image/jpeg;base64,${data.result}`));
+              if (data.path) dispatch(setLastViewedPath(data.path));
+            } else {
+              console.warn('[useRemoteControl] VIEW_FILE result is empty');
+            }
             break;
           case 'GET_STATS':
             if (data.result) dispatch(setSystemStats(data.result));
@@ -140,6 +148,14 @@ export const useRemoteControl = () => {
             if (data.result) {
               new Audio(`data:audio/mp4;base64,${data.result}`).play();
               alert('Audio recording received!');
+            }
+            break;
+          case 'GET_THUMBNAIL':
+            if (data.status === 'FAILED') {
+              console.error(`Thumbnail failed for ${data.path}: ${data.error}`);
+            } else if (data.result && data.path) {
+              console.log(`Thumbnail received for ${data.path}`);
+              dispatch(setThumbnail({ path: data.path, data: `data:image/jpeg;base64,${data.result}` }));
             }
             break;
           default: break;

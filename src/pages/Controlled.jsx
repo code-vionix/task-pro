@@ -6,10 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 // Redux Actions & Custom Hook
 import { useRemoteControl } from '../hooks/useRemoteControl';
 import {
-  setCapturedPhoto,
-  setCurrentPath,
-  setShowFileExplorer,
-  setShowNotificationsModal
+    setCapturedPhoto,
+    setCurrentPath,
+    setShowFileExplorer,
+    setShowNotificationsModal
 } from '../store/slices/remoteControlSlice';
 
 // Sub-components
@@ -37,8 +37,12 @@ export default function Controlled() {
     capturedPhoto,
     connectingDeviceId,
     showFileExplorer,
-    showNotificationsModal
+    showNotificationsModal,
+    files,
+    lastViewedPath
   } = useSelector((state) => state.remoteControl);
+
+  console.log('[Controlled] capturedPhoto state:', capturedPhoto ? `Exists (len: ${capturedPhoto.length})` : 'Null');
 
   const {
     lastCommandStatus,
@@ -53,6 +57,27 @@ export default function Controlled() {
   useEffect(() => {
     fetchDevices();
   }, [fetchDevices]);
+
+  // Keyboard navigation for PhotoOverlay
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!capturedPhoto) return;
+      
+      const currentFiles = files.filter(f => !f.isDir);
+      const currentIndex = currentFiles.findIndex(f => lastViewedPath === f.path);
+
+      if (e.key === 'Escape') dispatch(setCapturedPhoto(null));
+      if (e.key === 'ArrowRight' && currentIndex < currentFiles.length - 1) {
+        sendCommand('VIEW_FILE', { path: currentFiles[currentIndex + 1].path });
+      }
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        sendCommand('VIEW_FILE', { path: currentFiles[currentIndex - 1].path });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [capturedPhoto, files, lastViewedPath, sendCommand, dispatch]);
 
   const browseFiles = (path = null) => {
     sendCommand('GET_FILES', { path });
@@ -82,7 +107,7 @@ export default function Controlled() {
 
   if (session) {
     const currentDevice = devices.find(d => d.id === selectedDeviceId);
-
+    
     return (
       <div className="relative min-h-[calc(100vh-80px)] bg-background-main text-foreground-main flex flex-col overflow-hidden rounded-3xl mt-4 border border-border-main shadow-xl">
         <DeviceHeader deviceName={currentDevice?.deviceName} disconnectFromDevice={disconnectFromDevice} />
@@ -121,7 +146,24 @@ export default function Controlled() {
           <NotificationsModal setShowNotificationsModal={(val) => dispatch(setShowNotificationsModal(val))} />
         )}
         {capturedPhoto && (
-          <PhotoOverlay capturedPhoto={capturedPhoto} setCapturedPhoto={(val) => dispatch(setCapturedPhoto(val))} />
+          <PhotoOverlay 
+            capturedPhoto={capturedPhoto} 
+            setCapturedPhoto={(val) => dispatch(setCapturedPhoto(val))}
+            onNext={() => {
+              const currentFiles = files.filter(f => !f.isDir);
+              const currentIndex = currentFiles.findIndex(f => lastViewedPath === f.path);
+              if (currentIndex !== -1 && currentIndex < currentFiles.length - 1) {
+                sendCommand('VIEW_FILE', { path: currentFiles[currentIndex + 1].path });
+              }
+            }}
+            onPrev={() => {
+              const currentFiles = files.filter(f => !f.isDir);
+              const currentIndex = currentFiles.findIndex(f => lastViewedPath === f.path);
+              if (currentIndex > 0) {
+                sendCommand('VIEW_FILE', { path: currentFiles[currentIndex - 1].path });
+              }
+            }}
+          />
         )}
         {showFileExplorer && (
           <FileExplorerModal 
