@@ -6,8 +6,9 @@ async function bootstrap() {
     logger: ['error', 'warn'], // Only show errors and warnings from Nest itself
   });
   app.enableCors(); // Enable CORS for the frontend
+  app.setGlobalPrefix('api'); // Add /api prefix to all routes
   const port = process.env.PORT ?? 5000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`\x1b[32m Application is running on: http://localhost:${port}\x1b[0m`);
 }
 // Reload triggered: 2026-02-06T10:55:00
