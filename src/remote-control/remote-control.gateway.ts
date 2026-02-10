@@ -14,6 +14,7 @@ import { RemoteControlService } from './remote-control.service';
   cors: {
     origin: '*',
   },
+  maxHttpBufferSize: 1e8, // 100 MB for large payloads (images)
   namespace: 'remote-control',
 })
 export class RemoteControlGateway
@@ -157,7 +158,6 @@ export class RemoteControlGateway
     }
   }
 
-  // Device sends command result
   @SubscribeMessage('command:result')
   async handleCommandResult(
     @ConnectedSocket() client: Socket,
@@ -169,22 +169,33 @@ export class RemoteControlGateway
       error?: string;
     },
   ) {
-    await this.remoteControlService.updateCommandStatus(
-      data.commandId,
-      data.status,
-      data.result,
-      data.error,
-    );
+    console.log(`Backend received command:result for ID: ${data.commandId}, Status: ${data.status}`);
+    console.log('DEBUG CHECK: Payload keys:', Object.keys(data));
+    console.log('DEBUG CHECK: Result type:', typeof data.result);
+    if (data.result) {
+        const resultStr = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+        console.log('DEBUG CHECK: Result length:', resultStr.length);
+        console.log('DEBUG CHECK: Result start:', resultStr.substring(0, 100));
+    }
+    
+    try {
+        await this.remoteControlService.updateCommandStatus(
+          data.commandId,
+          data.status,
+          data.result,
+          data.error,
+        );
+    } catch (err) {
+        console.error(`Backend failed to update status for ${data.commandId}:`, err);
+        return { success: false, error: err.message };
+    }
 
     // Notify web client
     const command = await this.remoteControlService.getCommand(data.commandId);
     if (command) {
         this.server.to(`session:${command.sessionId}`).emit('command:completed', {
-            commandId: data.commandId,
+            ...data,
             type: command.type,
-            status: data.status,
-            result: data.result,
-            error: data.error,
         });
     }
 
