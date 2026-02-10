@@ -1,7 +1,7 @@
-
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import postReducer from './slices/postSlice';
+import remoteControlReducer from './slices/remoteControlSlice';
 import taskReducer from './slices/taskSlice';
 import themeReducer from './slices/themeSlice';
 
@@ -11,5 +11,6 @@ export const store = configureStore({
     tasks: taskReducer,
     posts: postReducer,
     theme: themeReducer,
+    remoteControl: remoteControlReducer,
   },
 });

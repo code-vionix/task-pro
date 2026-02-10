@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`,
 });
 
 api.interceptors.request.use((config) => {
@@ -57,7 +57,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/auth/refresh`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/refresh`, {
             refresh_token: refreshToken
         });
         

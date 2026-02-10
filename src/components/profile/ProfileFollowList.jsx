@@ -45,6 +45,10 @@ export default function ProfileFollowList({ userId, type, currentUserId }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {list.map(item => {
         const profile = type === 'followers' ? item.follower : item.following;
+        
+        // Skip if profile is undefined or null
+        if (!profile) return null;
+        
         return (
           <div 
             key={profile.id}
@@ -55,10 +59,10 @@ export default function ProfileFollowList({ userId, type, currentUserId }) {
               onClick={() => navigate(`/profile/${profile.id}`)}
             >
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+                <img src={profile.avatarUrl} alt={profile.name || 'User'} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-lg font-black italic">
-                   {profile.email[0].toUpperCase()}
+                   {profile.email?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
             </div>
@@ -68,9 +72,11 @@ export default function ProfileFollowList({ userId, type, currentUserId }) {
                 className="font-bold text-[var(--foreground)] truncate cursor-pointer hover:text-blue-500"
                 onClick={() => navigate(`/profile/${profile.id}`)}
               >
-                {profile.name || profile.email.split('@')[0]}
+                {profile.name || profile.email?.split('@')[0] || 'Unknown User'}
               </h4>
-              <p className="text-[10px] text-[var(--muted)] font-black uppercase tracking-widest truncate">{profile.email}</p>
+              <p className="text-[10px] text-[var(--muted)] font-black uppercase tracking-widest truncate">
+                {profile.email || 'No email'}
+              </p>
             </div>
 
             {profile.id !== currentUserId && (
