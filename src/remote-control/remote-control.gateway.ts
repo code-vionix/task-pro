@@ -262,6 +262,12 @@ export class RemoteControlGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { sessionId: string; frame: string; type?: string },
   ) {
+    if (data.type !== 'camera') {
+        // Log only screen frames occasionally to avoid spamming
+        if (Math.random() < 0.05) {
+            console.log(`Forwarding screen frame for session: ${data.sessionId}`);
+        }
+    }
     this.server.to(`session:${data.sessionId}`).emit('screen:frame', {
       frame: data.frame,
       type: data.type, // Forward the type (camera or screen)
