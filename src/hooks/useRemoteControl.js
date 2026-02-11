@@ -73,10 +73,15 @@ export const useRemoteControl = () => {
     dispatch(setCameraFrame(null));
     try {
       const token = localStorage.getItem('access_token');
-      const newSocket = io(`${API_URL}/remote-control`, { auth: { token } });
+      console.log('[RemoteControl] Connecting to /remote-control namespace at:', API_URL);
+      const newSocket = io(`${API_URL}/remote-control`, { 
+        auth: { token },
+        transports: ['websocket']
+      });
       setSocket(newSocket);
 
       newSocket.on('connect', () => {
+        console.log('[RemoteControl] Connected to /remote-control! Socket ID:', newSocket.id);
         dispatch(setConnectingDeviceId(deviceId));
         newSocket.emit('session:start', { deviceId }, (response) => {
           if (response.success) {
@@ -101,6 +106,9 @@ export const useRemoteControl = () => {
       });
 
       newSocket.on('screen:frame', (data) => {
+        if (data.type !== 'camera' && Math.random() < 0.05) {
+            console.log('[RemoteControl] Received screen frame');
+        }
         if (data.type === 'camera') dispatch(setCameraFrame(data.frame));
         else dispatch(setScreenFrame(data.frame));
       });
@@ -124,12 +132,9 @@ export const useRemoteControl = () => {
             }
             break;
           case 'VIEW_FILE':
-            console.log('[useRemoteControl] VIEW_FILE result received. Path:', data.path, 'Data size:', data.result?.length);
             if (data.result) {
               dispatch(setCapturedPhoto(`data:image/jpeg;base64,${data.result}`));
               if (data.path) dispatch(setLastViewedPath(data.path));
-            } else {
-              console.warn('[useRemoteControl] VIEW_FILE result is empty');
             }
             break;
           case 'GET_STATS':
@@ -157,6 +162,12 @@ export const useRemoteControl = () => {
               console.log(`Thumbnail received for ${data.path}`);
               dispatch(setThumbnail({ path: data.path, data: `data:image/jpeg;base64,${data.result}` }));
             }
+            break;
+          case 'SCREEN_SHARE_STOP':
+            dispatch(setScreenFrame(null));
+            break;
+          case 'CAMERA_STREAM_STOP':
+            dispatch(setCameraFrame(null));
             break;
           default: break;
         }

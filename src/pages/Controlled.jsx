@@ -42,8 +42,6 @@ export default function Controlled() {
     lastViewedPath
   } = useSelector((state) => state.remoteControl);
 
-  console.log('[Controlled] capturedPhoto state:', capturedPhoto ? `Exists (len: ${capturedPhoto.length})` : 'Null');
-
   const {
     lastCommandStatus,
     fetchDevices,

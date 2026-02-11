@@ -40,7 +40,6 @@ const LazyThumbnail = ({ file, sendCommand }) => {
     <div 
       ref={imgRef}
       onClick={() => {
-        console.log('[LazyThumbnail] Clicked file:', file.path);
         sendCommand('VIEW_FILE', { path: file.path });
       }}
       className="group aspect-square rounded-2xl bg-surface-main border border-border-main overflow-hidden relative cursor-pointer hover:border-primary-main hover:shadow-xl transition-all hover:-translate-y-1"
