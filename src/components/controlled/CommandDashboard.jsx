@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCameraFrame } from '../../store/slices/remoteControlSlice';
+import { setCameraFrame, setIsCameraStreaming } from '../../store/slices/remoteControlSlice';
 
 const categories = [
   {
@@ -52,6 +52,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
   const dispatch = useDispatch();
   const { 
     cameraFrame, 
+    isCameraStreaming,
     pendingCommands, 
     currentPath,
     showFileExplorer,
@@ -59,7 +60,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
   } = useSelector((state) => state.remoteControl);
 
   const isActive = (act) => {
-    if (act.action === 'camera_stream') return !!cameraFrame;
+    if (act.id === 'camera') return isCameraStreaming;
     if (act.altType === 'GET_GALLERY') return showFileExplorer && currentPath === 'Image Gallery';
     if (act.action === 'files') return showFileExplorer && currentPath !== 'Image Gallery';
     if (act.altType === 'GET_NOTIFICATIONS') return showNotificationsModal;
@@ -82,9 +83,18 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
 
     if (act.action === 'files') {
       browseFiles();
-    } else if (act.action === 'camera_stream') {
-      cameraFrame ? sendCommand('CAMERA_STREAM_STOP') : sendCommand('CAMERA_STREAM_START');
-      if (cameraFrame) dispatch(setCameraFrame(null));
+    } else if (act.id === 'camera') {
+      if (isCameraStreaming) {
+        sendCommand('CAMERA_STREAM_STOP');
+        dispatch(setIsCameraStreaming(false));
+        dispatch(setCameraFrame(null));
+      } else {
+        sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
+           if (response && response.success) {
+              dispatch(setIsCameraStreaming(true));
+           }
+        });
+      }
     } else if (act.altType) {
       sendCommand(act.altType);
     } else {

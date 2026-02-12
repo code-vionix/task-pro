@@ -1,11 +1,13 @@
 import { Monitor, Play, RefreshCw, Square, Zap } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCameraFrame, setCurrentCameraFacing, setIsAutoSync } from '../../store/slices/remoteControlSlice';
+import { useWebRTC } from '../../hooks/useWebRTC';
+import { setCameraFrame, setCurrentCameraFacing, setIsAutoSync, setIsCameraStreaming } from '../../store/slices/remoteControlSlice';
 
-export default function DeviceFrame({ sendCommand }) {
+export default function DeviceFrame({ sendCommand, socket }) {
   const dispatch = useDispatch();
   const screenRef = useRef(null);
+  const videoRef = useRef(null);
   const [dragStart, setDragStart] = useState(null);
   
   const { 
@@ -13,9 +15,64 @@ export default function DeviceFrame({ sendCommand }) {
     screenFrame, 
     currentCameraFacing, 
     isAutoSync, 
+    isCameraStreaming,
     pendingCommands,
-    systemStats 
+    systemStats,
+    session
   } = useSelector((state) => state.remoteControl);
+
+  const { startWebRTC, stopWebRTC, stream } = useWebRTC(socket, session?.id);
+
+  const hasStarted = useRef(false);
+
+  useEffect(() => {
+    if (isCameraStreaming && socket && session && !hasStarted.current) {
+      console.log('[DeviceFrame] Starting WebRTC stream');
+      startWebRTC();
+      hasStarted.current = true;
+    } else if (!isCameraStreaming && hasStarted.current) {
+      console.log('[DeviceFrame] Stopping WebRTC stream');
+      stopWebRTC();
+      hasStarted.current = false;
+    }
+  }, [isCameraStreaming, socket, session, startWebRTC, stopWebRTC]);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      console.log('[WebRTC] Attaching stream to video element');
+      const video = videoRef.current;
+      video.srcObject = stream;
+      
+      video.onloadedmetadata = () => {
+        console.log('[WebRTC] Metadata loaded, resolution:', video.videoWidth, 'x', video.videoHeight);
+        video.play().catch(e => console.error('[WebRTC] Play triggered by metadata failed:', e));
+      };
+
+      video.onresize = () => {
+        console.log('[WebRTC] Video resized to:', video.videoWidth, 'x', video.videoHeight);
+        if (video.videoWidth > 0) video.play().catch(() => {});
+      };
+
+      video.onplaying = () => console.log('[WebRTC] Video is now ACTIVE and PLAYING');
+      video.onwaiting = () => {
+        console.warn('[WebRTC] Video is WAITING for data...');
+        video.play().catch(() => {});
+      };
+      video.onstalled = () => console.error('[WebRTC] Video playback STALLED');
+      video.onpause = () => console.log('[WebRTC] Video PAUSED');
+
+      video.play().then(() => {
+        console.log('[WebRTC] Initial play() successful');
+      }).catch(e => {
+        console.error('[WebRTC] Initial play() failed (likely Autoplay policy):', e);
+      });
+
+      return () => {
+        video.onloadedmetadata = null;
+        video.onresize = null;
+      };
+    }
+  }, [stream]);
 
   const handleInteraction = (e, type) => {
     if (!screenFrame || !systemStats.screenWidth || !screenRef.current) return;
@@ -33,10 +90,8 @@ export default function DeviceFrame({ sendCommand }) {
       const dist = Math.sqrt(Math.pow(x - dragStart.x, 2) + Math.pow(y - dragStart.y, 2));
 
       if (dist < 10 && duration < 300) {
-        // Simple Click
         sendCommand('TOUCH_CLICK', { x, y });
       } else {
-        // Swipe
         sendCommand('TOUCH_SWIPE', { 
           x1: dragStart.x, 
           y1: dragStart.y, 
@@ -52,26 +107,33 @@ export default function DeviceFrame({ sendCommand }) {
   return (
     <div className="lg:w-[400px] shrink-0">
       <div className="sticky top-0">
-        {/* Phone Mockup */}
         <div className="relative mx-auto w-full max-w-[320px] aspect-[9/18.5] bg-surface-main rounded-[3rem] p-3 border-4 border-border-main shadow-2xl overflow-hidden group/phone">
-          {/* Status Bar / Notch */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-border-main rounded-b-3xl z-30 flex items-center justify-center">
              <div className="w-10 h-1 rounded-full bg-white/10"></div>
           </div>
 
           <div className="w-full h-full rounded-[2.5rem] bg-black/95 overflow-hidden relative border border-border-main">
-            {cameraFrame ? (
-              <div className="relative w-full h-full">
-                 <img 
-                  src={`data:image/jpeg;base64,${cameraFrame}`} 
-                  className="w-full h-full object-cover" 
-                  alt="Camera" 
+            {isCameraStreaming ? (
+              <div className="relative w-full h-full bg-black">
+                 <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  onPlaying={() => console.log('[WebRTC] Video is now playing!')}
+                  className="w-full h-full object-cover pointer-events-none"
                 />
-                 {/* ... (Camera Controls - kept same) */}
+                 {!stream && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 gap-3">
+                       <RefreshCw className="w-10 h-10 text-primary-main animate-spin" />
+                       <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Bridging Connection...</span>
+                    </div>
+                 )}
                  <div className="absolute top-6 right-6 flex items-center gap-2">
                    <button 
                      onClick={() => {
                        sendCommand('CAMERA_STREAM_STOP');
+                       dispatch(setIsCameraStreaming(false));
                        dispatch(setCameraFrame(null));
                      }}
                      className="p-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all"
@@ -83,9 +145,23 @@ export default function DeviceFrame({ sendCommand }) {
                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-surface-main/80 p-2 rounded-2xl border border-border-main backdrop-blur-md">
                     <button 
                       onClick={() => {
+                        // Stop current WebRTC
+                        stopWebRTC();
+                        hasStarted.current = true; // Block immediate restart
+                        
                         const nextFacing = currentCameraFacing === 0 ? 1 : 0;
                         dispatch(setCurrentCameraFacing(nextFacing));
                         sendCommand('CAMERA_STREAM_START', { facing: nextFacing });
+
+                        // Allow restart after a delay
+                        setTimeout(() => {
+                           console.log('[DeviceFrame] Re-enabling WebRTC after switch delay');
+                           hasStarted.current = false;
+                           if (isCameraStreaming) {
+                             startWebRTC();
+                             hasStarted.current = true;
+                           }
+                        }, 1500);
                       }}
                       className="p-3 rounded-xl bg-primary-main hover:bg-primary-dark text-white transition-all shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase"
                     >

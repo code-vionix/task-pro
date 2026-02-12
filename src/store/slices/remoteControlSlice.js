@@ -15,11 +15,12 @@ const initialState = {
   pendingCommands: {}, // Map of type -> boolean
   currentCameraFacing: 0, // 0: back, 1: front
   isAutoSync: false,
+  isCameraStreaming: false,
   connectingDeviceId: null,
   showFileExplorer: false,
   showNotificationsModal: false,
   thumbnails: {}, // Cache for image thumbnails
-  lastViewedPath: null, // Track current high-res image path for navigation
+  lastViewedPath: null,
 };
 
 const remoteControlSlice = createSlice({
@@ -64,6 +65,9 @@ const remoteControlSlice = createSlice({
     },
     setIsAutoSync: (state, action) => {
       state.isAutoSync = action.payload;
+    },
+    setIsCameraStreaming: (state, action) => {
+      state.isCameraStreaming = action.payload;
     },
     setCurrentCameraFacing: (state, action) => {
       state.currentCameraFacing = action.payload;
@@ -117,6 +121,7 @@ export const {
   setCurrentPath,
   setCapturedPhoto,
   setIsAutoSync,
+  setIsCameraStreaming,
   setCurrentCameraFacing,
   setShowFileExplorer,
   setShowNotificationsModal,

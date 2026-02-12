@@ -43,6 +43,7 @@ export default function Controlled() {
   } = useSelector((state) => state.remoteControl);
 
   const {
+    socket,
     lastCommandStatus,
     fetchDevices,
     connectToDevice,
@@ -111,7 +112,7 @@ export default function Controlled() {
         <DeviceHeader deviceName={currentDevice?.deviceName} disconnectFromDevice={disconnectFromDevice} />
 
         <div className="flex-1 flex flex-col lg:flex-row gap-8 p-6 overflow-y-auto custom-scrollbar">
-          <DeviceFrame sendCommand={sendCommand} />
+          <DeviceFrame sendCommand={sendCommand} socket={socket} />
 
           <div className="flex-1 space-y-10">
             <CommandDashboard sendCommand={sendCommand} browseFiles={browseFiles} />

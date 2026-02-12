@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import {
@@ -50,11 +50,12 @@ export const useRemoteControl = () => {
     }
   }, [dispatch]);
 
-  const sendCommand = useCallback((type, payload = {}) => {
+  const sendCommand = useCallback((type, payload = {}, callback = null) => {
     if (!socket || !session) return;
     dispatch(addPendingCommand({ type }));
     socket.emit('command:send', { sessionId: session.id, type, payload }, (response) => {
       dispatch(removePendingCommand({ type }));
+      if (callback) callback(response);
       if (!response.success) alert('Command failed: ' + response.error);
     });
   }, [socket, session, dispatch]);
@@ -106,11 +107,9 @@ export const useRemoteControl = () => {
       });
 
       newSocket.on('screen:frame', (data) => {
-        if (data.type !== 'camera' && Math.random() < 0.05) {
-            console.log('[RemoteControl] Received screen frame');
+        if (data.type !== 'camera') {
+            dispatch(setScreenFrame(data.frame));
         }
-        if (data.type === 'camera') dispatch(setCameraFrame(data.frame));
-        else dispatch(setScreenFrame(data.frame));
       });
 
       newSocket.on('command:completed', (data) => {
@@ -176,18 +175,6 @@ export const useRemoteControl = () => {
       dispatch(setLoading(false));
     }
   }, [dispatch, disconnectFromDevice]);
-
-  useEffect(() => {
-    if (socket && session) {
-      const interval = setInterval(() => {
-        sendCommand('GET_STATS');
-        if (cameraFrame && isAutoSync) {
-          sendCommand('CAMERA_STREAM_START', { facing: currentCameraFacing });
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    }
-  }, [socket, session, cameraFrame, isAutoSync, currentCameraFacing, sendCommand]);
 
   return { socket, lastCommandStatus, fetchDevices, connectToDevice, disconnectFromDevice, sendCommand };
 };
