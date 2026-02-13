@@ -43,7 +43,7 @@ const categories = [
     actions: [
       { id: 'apps', label: 'Applications', icon: <LayoutGrid size={18} />, action: 'apps', comingSoon: true },
       { id: 'notifications', label: 'Alerts', icon: <Bell size={18} />, altType: 'GET_NOTIFICATIONS' },
-      { id: 'vibrate', label: 'Test Vibrate', icon: <Zap size={18} />, action: 'vibrate', comingSoon: true },
+      { id: 'vibrate', label: 'Test Vibrate', icon: <Zap size={18} />, action: 'vibrate' },
     ],
   },
 ];
