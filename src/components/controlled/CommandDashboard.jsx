@@ -89,7 +89,6 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         dispatch(setIsCameraStreaming(false));
         dispatch(setCameraFrame(null));
       } else {
-      } else {
         dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
         sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
            dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
