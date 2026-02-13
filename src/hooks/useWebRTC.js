@@ -11,11 +11,19 @@ export const useWebRTC = (socket, sessionId) => {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' },
-                { urls: 'stun:stun.relay.metered.ca:80' }, // Added public stun relay
-                { urls: 'stun:stun.services.mozilla.com' }
+                { 
+                    urls: 'turn:global.turn.metered.ca:80',
+                    username: '3be313c631df4649f7b4ce2d',
+                    credential: 'turn:global.turn.metered.ca:80:3be313c631df4649f7b4ce2d' 
+                },
+                { 
+                    urls: 'turn:global.turn.metered.ca:443',
+                    username: '3be313c631df4649f7b4ce2d',
+                    credential: 'turn:global.turn.metered.ca:443:3be313c631df4649f7b4ce2d'
+                },
+                { 
+                    urls: 'stun:global.stun.metered.ca:80',
+                }
             ],
             iceCandidatePoolSize: 10,
         };
