@@ -12,18 +12,23 @@ export const useWebRTC = (socket, sessionId) => {
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { 
-                    urls: 'turn:global.turn.metered.ca:80',
-                    username: '3be313c631df4649f7b4ce2d',
-                    credential: 'turn:global.turn.metered.ca:80:3be313c631df4649f7b4ce2d' 
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject' 
                 },
                 { 
-                    urls: 'turn:global.turn.metered.ca:443',
-                    username: '3be313c631df4649f7b4ce2d',
-                    credential: 'turn:global.turn.metered.ca:443:3be313c631df4649f7b4ce2d'
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
                 },
                 { 
-                    urls: 'stun:global.stun.metered.ca:80',
-                }
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                { 
+                    urls: 'stun:openrelay.metered.ca:80',
+                },
             ],
             iceCandidatePoolSize: 10,
         };
