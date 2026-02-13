@@ -37,6 +37,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
         }
       } else {
         if (hasStarted.current) {
+          // Add a small delay/check to prevent immediate stop-start flapping
           console.log('[DeviceFrame] Stopping WebRTC (Streaming FALSE or missing Deps)');
           stopWebRTC();
           hasStarted.current = false;
