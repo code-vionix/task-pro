@@ -136,10 +136,10 @@ export default function DeviceFrame({ sendCommand, socket }) {
                   playsInline
                   muted
                   onPlaying={() => console.log('[WebRTC] Video is now playing!')}
-                  className="w-full h-full object-cover pointer-events-none"
+                  className={`w-full h-full object-cover pointer-events-none ${!stream ? 'hidden' : ''}`}
                 />
                  {!stream && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-10 gap-3">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 gap-3">
                        <RefreshCw className="w-10 h-10 text-primary-main animate-spin" />
                        <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Bridging Connection...</span>
                     </div>
