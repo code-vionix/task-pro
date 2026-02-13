@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCameraFrame, setIsCameraStreaming } from '../../store/slices/remoteControlSlice';
+import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming } from '../../store/slices/remoteControlSlice';
 
 const categories = [
   {
