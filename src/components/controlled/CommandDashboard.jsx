@@ -89,9 +89,15 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         dispatch(setIsCameraStreaming(false));
         dispatch(setCameraFrame(null));
       } else {
+      } else {
+        dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
         sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
+           dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
            if (response && response.success) {
               dispatch(setIsCameraStreaming(true));
+              toast.success('Camera stream requested');
+           } else {
+              toast.error('Failed to start camera');
            }
         });
       }
