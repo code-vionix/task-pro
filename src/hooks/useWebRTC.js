@@ -117,10 +117,12 @@ export const useWebRTC = (socket, sessionId) => {
         socket.on('webrtc:ice-candidate', handleIceCandidate);
 
         return () => {
+            console.log('[WebRTC] Cleaning up socket listeners and stopping connection');
             socket.off('webrtc:answer', handleAnswer);
             socket.off('webrtc:ice-candidate', handleIceCandidate);
+            stopWebRTC();
         };
-    }, [socket, sessionId]);
+    }, [socket, sessionId, stopWebRTC]);
 
     return { startWebRTC, stopWebRTC, stream };
 };

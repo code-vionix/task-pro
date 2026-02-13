@@ -101,6 +101,7 @@ const remoteControlSlice = createSlice({
       state.thumbnails = {}; // Clear cache on session end
       state.pendingCommands = {};
       state.showFileExplorer = false;
+      state.isCameraStreaming = false;
       state.showNotificationsModal = false;
       state.lastViewedPath = null;
     }

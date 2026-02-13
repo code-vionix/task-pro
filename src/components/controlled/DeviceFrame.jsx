@@ -26,15 +26,29 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    if (isCameraStreaming && socket && session && !hasStarted.current) {
-      console.log('[DeviceFrame] Starting WebRTC stream');
-      startWebRTC();
-      hasStarted.current = true;
-    } else if (!isCameraStreaming && hasStarted.current) {
-      console.log('[DeviceFrame] Stopping WebRTC stream');
-      stopWebRTC();
-      hasStarted.current = false;
-    }
+    let active = true;
+
+    const manageStream = async () => {
+      if (isCameraStreaming && socket && session) {
+        if (!hasStarted.current) {
+          console.log('[DeviceFrame] Conditions met, starting WebRTC');
+          await startWebRTC();
+          if (active) hasStarted.current = true;
+        }
+      } else {
+        if (hasStarted.current) {
+          console.log('[DeviceFrame] Stopping WebRTC (Streaming FALSE or missing Deps)');
+          stopWebRTC();
+          hasStarted.current = false;
+        }
+      }
+    };
+
+    manageStream();
+
+    return () => {
+      active = false;
+    };
   }, [isCameraStreaming, socket, session, startWebRTC, stopWebRTC]);
 
   useEffect(() => {
