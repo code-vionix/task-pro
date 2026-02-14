@@ -30,22 +30,24 @@ export class RemoteControlGateway
   ) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client checking authentication: ${client.id}`);
+    const authHeader = client.handshake.auth?.token;
+    const queryToken = client.handshake.query?.token;
+    console.log(`[Socket] Auth check: id=${client.id}, authTok=${!!authHeader}, queryTok=${!!queryToken}`);
+    
     try {
-      // Get token from auth or query
-      const token = client.handshake.auth?.token || client.handshake.query?.token;
+      const token = (authHeader || queryToken) as string;
       
       if (!token) {
-        console.error(`Client ${client.id} disconnected: No token provided`);
+        console.error(`[Socket] Client ${client.id} disconnected: No token provided in handshake`);
         client.disconnect();
         return;
       }
 
       const decoded = this.jwtService.verify(token);
       client['userId'] = decoded.sub;
-      console.log(`Client authenticated: ${client.id} (User: ${client['userId']})`);
+      console.log(`[Socket] Authenticated: ${client.id} (User: ${client['userId']})`);
     } catch (error) {
-      console.error(`Client ${client.id} disconnected: Invalid token - ${error.message}`);
+      console.error(`[Socket] Client ${client.id} auth failed: ${error.message}`);
       client.disconnect();
     }
   }
