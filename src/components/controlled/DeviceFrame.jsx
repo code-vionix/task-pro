@@ -221,8 +221,10 @@ export default function DeviceFrame({ sendCommand, socket }) {
       dispatch(setIsCameraStreaming(false));
       dispatch(setCameraFrame(null));
     }
-    if (screenFrame) {
+    if (isScreenMirroring || screenFrame) {
       sendCommand('SCREEN_SHARE_STOP');
+      dispatch(setIsScreenMirroring(false));
+      dispatch(setScreenFrame(null));
     }
   };
 
