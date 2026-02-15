@@ -37,7 +37,7 @@ export const useWebRTC = (socket, sessionId) => {
 
         peer.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('[WebRTC] Local ICE candidate generated');
+                console.log('[WebRTC] Local ICE candidate generated:', event.candidate.candidate);
                 socket.emit('webrtc:ice-candidate', {
                     sessionId,
                     candidate: event.candidate.candidate,
@@ -45,6 +45,8 @@ export const useWebRTC = (socket, sessionId) => {
                     sdpMLineIndex: event.candidate.sdpMLineIndex,
                     target: 'device'
                 });
+            } else {
+                console.log('[WebRTC] ICE Gathering Complete');
             }
         };
 
