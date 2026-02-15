@@ -13,8 +13,8 @@ import {
     Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
-import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setScreenFrame } from '../../store/slices/remoteControlSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setIsScreenMirroring, setScreenFrame } from '../../store/slices/remoteControlSlice';
 
 const categories = [
   {
