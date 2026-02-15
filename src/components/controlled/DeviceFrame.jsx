@@ -51,7 +51,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
     isCameraStreaming,
     pendingCommands,
     systemStats,
-    session
+    session,
+    isScreenMirroring
   } = useSelector((state) => state.remoteControl);
 
   const { startWebRTC, stopWebRTC, stream } = useWebRTC(socket, session?.id);
@@ -61,9 +62,9 @@ export default function DeviceFrame({ sendCommand, socket }) {
   useEffect(() => {
     let active = true;
     const manageStream = async () => {
-      if (isCameraStreaming && socket && session) {
+      if ((isCameraStreaming || isScreenMirroring) && socket && session) {
         if (!hasStarted.current) {
-          console.log('[DeviceFrame] Starting WebRTC');
+          console.log('[DeviceFrame] Starting WebRTC for', isCameraStreaming ? 'camera' : 'screen');
           await startWebRTC();
           if (active) hasStarted.current = true;
         }
@@ -77,7 +78,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
     };
     manageStream();
     return () => { active = false; };
-  }, [isCameraStreaming, socket, session, startWebRTC, stopWebRTC]);
+  }, [isCameraStreaming, isScreenMirroring, socket, session, startWebRTC, stopWebRTC]);
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -174,8 +175,9 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   // Screen interaction
   const handleInteraction = (e, type) => {
-    if (!screenFrame || !systemStats.screenWidth || !screenRef.current) return;
-    const rect = screenRef.current.getBoundingClientRect();
+    const activeRef = isScreenMirroring ? videoRef : screenRef;
+    if (!activeRef.current || !systemStats.screenWidth) return;
+    const rect = activeRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * systemStats.screenWidth;
     const y = ((e.clientY - rect.top) / rect.height) * systemStats.screenHeight;
 
@@ -225,7 +227,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
   };
 
   // Only show window when camera or screen is active
-  if (!isCameraStreaming && !screenFrame && !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START']) {
+  if (!isCameraStreaming && !isScreenMirroring && !screenFrame && !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START']) {
     return null;
   }
 
@@ -292,6 +294,23 @@ export default function DeviceFrame({ sendCommand, socket }) {
                     <button onClick={() => { sendCommand('CAMERA_STREAM_STOP'); dispatch(setIsCameraStreaming(false)); dispatch(setCameraFrame(null)); }} className="p-2 rounded bg-red-600/80 hover:bg-red-700/80 text-white backdrop-blur-sm">
                       <Square size={14} fill="currentColor" />
                     </button>
+                  </div>
+                </div>
+              ) : isScreenMirroring ? (
+                <div className="relative w-full h-full">
+                  <video ref={videoRef} autoPlay playsInline muted 
+                    onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
+                    onMouseUp={(e) => handleInteraction(e, 'mouseup')}
+                    className={`w-full h-full object-contain select-none ${!stream ? 'hidden' : ''}`} 
+                  />
+                  {!stream && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                      <RefreshCw className="w-8 h-8 text-primary-main animate-spin" />
+                      <span className="text-xs text-gray-500 font-medium">Readying Screen...</span>
+                    </div>
+                  )}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary-main/80 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none">
+                     Live Control
                   </div>
                 </div>
               ) : screenFrame ? (

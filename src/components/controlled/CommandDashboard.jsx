@@ -13,7 +13,7 @@ import {
     Zap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setScreenFrame } from '../../store/slices/remoteControlSlice';
 
 const categories = [
@@ -56,6 +56,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
     cameraFrame, 
     screenFrame,
     isCameraStreaming,
+    isScreenMirroring,
     pendingCommands, 
     currentPath,
     showFileExplorer,
@@ -64,7 +65,7 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
 
   const isActive = (act) => {
     if (act.id === 'camera') return isCameraStreaming;
-    if (act.id === 'screen_mirror') return !!screenFrame;
+    if (act.id === 'screen_mirror') return isScreenMirroring;
     if (act.altType === 'GET_GALLERY') return showFileExplorer && currentPath === 'Image Gallery';
     if (act.action === 'files') return showFileExplorer && currentPath !== 'Image Gallery';
     if (act.altType === 'GET_NOTIFICATIONS') return showNotificationsModal;
@@ -93,6 +94,12 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         dispatch(setIsCameraStreaming(false));
         dispatch(setCameraFrame(null));
       } else {
+        // Stop screen mirror if active
+        if (isScreenMirroring) {
+          sendCommand('SCREEN_SHARE_STOP');
+          dispatch(setIsScreenMirroring(false));
+          dispatch(setScreenFrame(null));
+        }
         dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
         sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
            dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
@@ -105,15 +112,23 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         });
       }
     } else if (act.id === 'screen_mirror') {
-      if (screenFrame) {
+      if (isScreenMirroring) {
         sendCommand('SCREEN_SHARE_STOP');
+        dispatch(setIsScreenMirroring(false));
         dispatch(setScreenFrame(null));
         toast.success('Screen mirroring stopped');
       } else {
+        // Stop camera if active
+        if (isCameraStreaming) {
+          sendCommand('CAMERA_STREAM_STOP');
+          dispatch(setIsCameraStreaming(false));
+          dispatch(setCameraFrame(null));
+        }
         dispatch(addPendingCommand({ type: 'SCREEN_SHARE_START' }));
         sendCommand('SCREEN_SHARE_START', {}, (response) => {
            dispatch(removePendingCommand({ type: 'SCREEN_SHARE_START' }));
            if (response && response.success) {
+              dispatch(setIsScreenMirroring(true));
               toast.success('Screen mirroring started');
            } else {
               toast.error('Failed to start screen mirroring');

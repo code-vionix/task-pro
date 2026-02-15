@@ -16,6 +16,7 @@ const initialState = {
   currentCameraFacing: 0, // 0: back, 1: front
   isAutoSync: false,
   isCameraStreaming: false,
+  isScreenMirroring: false,
   connectingDeviceId: null,
   showFileExplorer: false,
   showNotificationsModal: false,
@@ -69,6 +70,9 @@ const remoteControlSlice = createSlice({
     setIsCameraStreaming: (state, action) => {
       state.isCameraStreaming = action.payload;
     },
+    setIsScreenMirroring: (state, action) => {
+      state.isScreenMirroring = action.payload;
+    },
     setCurrentCameraFacing: (state, action) => {
       state.currentCameraFacing = action.payload;
     },
@@ -102,6 +106,7 @@ const remoteControlSlice = createSlice({
       state.pendingCommands = {};
       state.showFileExplorer = false;
       state.isCameraStreaming = false;
+      state.isScreenMirroring = false;
       state.showNotificationsModal = false;
       state.lastViewedPath = null;
     }
@@ -123,6 +128,7 @@ export const {
   setCapturedPhoto,
   setIsAutoSync,
   setIsCameraStreaming,
+  setIsScreenMirroring,
   setCurrentCameraFacing,
   setShowFileExplorer,
   setShowNotificationsModal,
