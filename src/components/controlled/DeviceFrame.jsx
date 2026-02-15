@@ -18,7 +18,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useWebRTC } from '../../hooks/useWebRTC';
-import { setCameraFrame, setCurrentCameraFacing, setIsCameraStreaming, setIsScreenMirroring } from '../../store/slices/remoteControlSlice';
+import { setCameraFrame, setCurrentCameraFacing, setIsCameraStreaming, setIsScreenMirroring, setScreenFrame } from '../../store/slices/remoteControlSlice';
 
 export default function DeviceFrame({ sendCommand, socket }) {
   const dispatch = useDispatch();
