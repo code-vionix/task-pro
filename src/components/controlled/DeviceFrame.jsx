@@ -199,10 +199,10 @@ export default function DeviceFrame({ sendCommand, socket }) {
   // Calculate window styles
   const getWindowStyle = () => {
     if (windowState.isFullscreen) {
-      return { position: 'fixed', inset: 0, width: '100vw', height: '100vh', zIndex: 50 };
+      return { position: 'fixed', inset: 0, width: '100vw', height: '100vh', zIndex: 300 };
     }
     if (windowState.isMaximized) {
-      return { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '90vw', maxWidth: '500px', height: '90vh', zIndex: 50 };
+      return { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '90vw', maxWidth: '500px', height: '90vh', zIndex: 300 };
     }
     return {
       position: 'fixed',
@@ -210,7 +210,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
       top: `${windowState.position.y}px`,
       width: `${windowState.size.width}px`,
       height: `${windowState.size.height}px`,
-      zIndex: 40
+      zIndex: 200
     };
   };
 
@@ -235,7 +235,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   if (windowState.isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-[999]">
         <button
           onClick={toggleMinimize}
           className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-2xl border-2 border-white/20 transition-all hover:scale-105"

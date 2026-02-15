@@ -31,6 +31,9 @@ export const useWebRTC = (socket, sessionId) => {
                 },
             ],
             iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            iceTransportPolicy: 'all',
+            rtcpMuxPolicy: 'require'
         };
 
         const peer = new RTCPeerConnection(config);
