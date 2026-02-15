@@ -283,7 +283,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                 <div className="relative w-full h-full">
                   <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-contain ${!stream ? 'hidden' : ''}`} />
                   {!stream && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
                       <RefreshCw className="w-8 h-8 text-primary-main animate-spin" />
                       <span className="text-xs text-gray-500 font-medium">Connecting...</span>
                     </div>
@@ -306,7 +306,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                     className={`w-full h-full object-contain select-none ${!stream ? 'hidden' : ''}`} 
                   />
                   {!stream && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
                       <RefreshCw className="w-8 h-8 text-primary-main animate-spin" />
                       <span className="text-xs text-gray-500 font-medium">Readying Screen...</span>
                     </div>

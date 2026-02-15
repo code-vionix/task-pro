@@ -57,6 +57,13 @@ export default function Controlled() {
     fetchDevices();
   }, [fetchDevices]);
 
+  // Auto-close download modal when session starts
+  useEffect(() => {
+    if (session && showDownloadModal) {
+      setShowDownloadModal(false);
+    }
+  }, [session, showDownloadModal]);
+
   // Keyboard navigation for PhotoOverlay
   useEffect(() => {
     const handleKeyDown = (e) => {

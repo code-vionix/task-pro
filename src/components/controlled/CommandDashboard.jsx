@@ -161,7 +161,10 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
                  </div>
                  <div className="space-y-2">
                     {cat.actions.map(act => {
-                      const typeKey = act.altType || act.action || 'CUSTOM';
+                      let typeKey = act.altType || act.action || 'CUSTOM';
+                      if (act.id === 'screen_mirror') typeKey = 'SCREEN_SHARE_START';
+                      if (act.id === 'camera') typeKey = 'CAMERA_STREAM_START';
+                      
                       const isLoading = !!pendingCommands[typeKey];
                       const active = isActive(act);
 
