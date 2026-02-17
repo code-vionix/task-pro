@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setIsScreenMirroring, setScreenFrame } from '../../store/slices/remoteControlSlice';
+import { addPendingCommand, removePendingCommand, setCameraFrame, setIsCameraStreaming, setIsControlEnabled, setIsScreenMirroring, setScreenFrame } from '../../store/slices/remoteControlSlice';
 
 const categories = [
   {
@@ -29,11 +29,12 @@ const categories = [
   },
   {
     title: 'Media & Files',
-    desc: 'Camera and Files',
+    desc: 'Camera, Mirroring & Controls',
     color: 'purple',
     actions: [
       { id: 'camera', label: 'Live Camera', icon: <Camera size={18} />, action: 'camera_stream' },
-      { id: 'screen_mirror', label: 'Screen Mirroring', icon: <MonitorIcon size={18} />, action: 'screen_share' },
+      { id: 'screen_mirror', label: 'Mirror Only', icon: <MonitorIcon size={18} />, action: 'screen_share' },
+      { id: 'remote_control', label: 'Full Control', icon: <MonitorIcon size={18} />, action: 'remote_control' },
       { id: 'photos', label: 'Gallery', icon: <Image size={18} />, altType: 'GET_GALLERY' },
       { id: 'files', label: 'File Browser', icon: <Folder size={18} />, action: 'files' },
     ],
@@ -60,12 +61,14 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
     pendingCommands, 
     currentPath,
     showFileExplorer,
-    showNotificationsModal
+    showNotificationsModal,
+    isControlEnabled
   } = useSelector((state) => state.remoteControl);
 
   const isActive = (act) => {
     if (act.id === 'camera') return isCameraStreaming;
-    if (act.id === 'screen_mirror') return isScreenMirroring;
+    if (act.id === 'screen_mirror') return isScreenMirroring && !isControlEnabled;
+    if (act.id === 'remote_control') return isScreenMirroring && isControlEnabled;
     if (act.altType === 'GET_GALLERY') return showFileExplorer && currentPath === 'Image Gallery';
     if (act.action === 'files') return showFileExplorer && currentPath !== 'Image Gallery';
     if (act.altType === 'GET_NOTIFICATIONS') return showNotificationsModal;
@@ -99,24 +102,46 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
           sendCommand('SCREEN_SHARE_STOP');
           dispatch(setIsScreenMirroring(false));
           dispatch(setScreenFrame(null));
+          dispatch(setIsControlEnabled(false));
         }
         dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
         sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
-           dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
-           if (response && response.success) {
-              dispatch(setIsCameraStreaming(true));
-              toast.success('Camera stream requested');
-           } else {
-              toast.error('Failed to start camera');
-           }
+            dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
+            if (response && response.success) {
+               dispatch(setIsCameraStreaming(true));
+               toast.success('Camera stream requested');
+            } else {
+               toast.error('Failed to start camera');
+            }
         });
       }
-    } else if (act.id === 'screen_mirror') {
+    } else if (act.id === 'screen_mirror' || act.id === 'remote_control') {
+      const isControl = act.id === 'remote_control';
+
       if (isScreenMirroring) {
-        sendCommand('SCREEN_SHARE_STOP');
-        dispatch(setIsScreenMirroring(false));
-        dispatch(setScreenFrame(null));
-        toast.success('Screen mirroring stopped');
+        // If already mirroring, check if we are just switching modes
+        if ((isControl && !isControlEnabled) || (!isControl && isControlEnabled)) {
+          // Stop current and start new mode
+          sendCommand('SCREEN_SHARE_STOP');
+          setTimeout(() => {
+            dispatch(addPendingCommand({ type: 'CONTROL_START' }));
+            sendCommand('CONTROL_START', { control: isControl }, (response) => {
+              dispatch(removePendingCommand({ type: 'CONTROL_START' }));
+              if (response?.status === "COMPLETED" || response?.success) {
+                dispatch(setIsScreenMirroring(true));
+                dispatch(setIsControlEnabled(isControl));
+                toast.success(`${isControl ? 'Remote Control' : 'Mirroring'} active`);
+              }
+            });
+          }, 500);
+        } else {
+          // Just stop
+          sendCommand('SCREEN_SHARE_STOP');
+          dispatch(setIsScreenMirroring(false));
+          dispatch(setScreenFrame(null));
+          dispatch(setIsControlEnabled(false));
+          toast.success('Stopped');
+        }
       } else {
         // Stop camera if active
         if (isCameraStreaming) {
@@ -124,15 +149,16 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
           dispatch(setIsCameraStreaming(false));
           dispatch(setCameraFrame(null));
         }
-        dispatch(addPendingCommand({ type: 'SCREEN_SHARE_START' }));
-        sendCommand('SCREEN_SHARE_START', {}, (response) => {
-           dispatch(removePendingCommand({ type: 'SCREEN_SHARE_START' }));
-           if (response && response.success) {
-              dispatch(setIsScreenMirroring(true));
-              toast.success('Screen mirroring started');
-           } else {
-              toast.error('Failed to start screen mirroring');
-           }
+        dispatch(addPendingCommand({ type: 'CONTROL_START' }));
+        sendCommand('CONTROL_START', { control: isControl }, (response) => {
+          dispatch(removePendingCommand({ type: 'CONTROL_START' }));
+          if (response?.status === "COMPLETED" || response?.success) {
+            dispatch(setIsScreenMirroring(true));
+            dispatch(setIsControlEnabled(isControl));
+            toast.success(`${isControl ? 'Remote Control' : 'Mirroring'} started`);
+          } else {
+            toast.error('Failed to start session');
+          }
         });
       }
     } else if (act.altType) {

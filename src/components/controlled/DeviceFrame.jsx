@@ -52,7 +52,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
     pendingCommands,
     systemStats,
     session,
-    isScreenMirroring
+    isScreenMirroring,
+    isControlEnabled
   } = useSelector((state) => state.remoteControl);
 
   const { startWebRTC, stopWebRTC, stream } = useWebRTC(socket, session?.id);
@@ -159,6 +160,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   // Phone buttons
   const handlePhoneButton = (button) => {
+    if (!isControlEnabled) return;
     const keyCodes = { 
         home: 3, 
         back: 4, 
@@ -175,11 +177,46 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   // Screen interaction
   const handleInteraction = (e, type) => {
+    if (!isControlEnabled) return;
     const activeRef = isScreenMirroring ? videoRef : screenRef;
-    if (!activeRef.current || !systemStats.screenWidth) return;
+    if (!activeRef.current || !systemStats.screenWidth || !systemStats.screenHeight) return;
+
     const rect = activeRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * systemStats.screenWidth;
-    const y = ((e.clientY - rect.top) / rect.height) * systemStats.screenHeight;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    // Calculate the actual displayed dimensions of the video/image within the container
+    // assuming object-fit: contain
+    const containerRatio = rect.width / rect.height;
+    const streamRatio = systemStats.screenWidth / systemStats.screenHeight;
+
+    let displayedWidth = rect.width;
+    let displayedHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (containerRatio > streamRatio) {
+      // Container is wider than the stream (pillarbox: black bars on sides)
+      displayedWidth = rect.height * streamRatio;
+      offsetX = (rect.width - displayedWidth) / 2;
+    } else {
+      // Container is taller than the stream (letterbox: black bars on top/bottom)
+      displayedHeight = rect.width / streamRatio;
+      offsetY = (rect.height - displayedHeight) / 2;
+    }
+
+    // Relative coordinates within the actual displayed content
+    const relX = clientX - rect.left - offsetX;
+    const relY = clientY - rect.top - offsetY;
+
+    // Check if click is inside the displayed content
+    if (relX < 0 || relX > displayedWidth || relY < 0 || relY > displayedHeight) {
+      return; // Ignore clicks on the black bars
+    }
+
+    // Map to actual device coordinates
+    const x = (relX / displayedWidth) * systemStats.screenWidth;
+    const y = (relY / displayedHeight) * systemStats.screenHeight;
 
     if (type === 'mousedown') {
       setDragStart({ x, y, time: Date.now() });
@@ -311,15 +348,15 @@ export default function DeviceFrame({ sendCommand, socket }) {
                       <span className="text-xs text-gray-500 font-medium">Readying Screen...</span>
                     </div>
                   )}
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary-main/80 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none">
-                     Live Control
+                  <div className={`absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none ${isControlEnabled ? 'bg-primary-main/80' : 'bg-orange-500/80'}`}>
+                     {isControlEnabled ? 'Live Control' : 'View Only'}
                   </div>
                 </div>
               ) : screenFrame ? (
                 <div className="relative w-full h-full">
                   <img ref={screenRef} src={`data:image/jpeg;base64,${screenFrame}`} className="w-full h-full object-contain select-none" alt="Screen" onMouseDown={(e) => handleInteraction(e, 'mousedown')} onMouseUp={(e) => handleInteraction(e, 'mouseup')} draggable={false} />
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary-main/80 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none">
-                     Live Control
+                  <div className={`absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none ${isControlEnabled ? 'bg-primary-main/80' : 'bg-orange-500/80'}`}>
+                     {isControlEnabled ? 'Live Control' : 'View Only'}
                   </div>
                 </div>
               ) : (

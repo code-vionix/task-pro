@@ -22,6 +22,7 @@ const initialState = {
   showNotificationsModal: false,
   thumbnails: {}, // Cache for image thumbnails
   lastViewedPath: null,
+  isControlEnabled: false,
 };
 
 const remoteControlSlice = createSlice({
@@ -97,6 +98,9 @@ const remoteControlSlice = createSlice({
       const { type } = action.payload;
       delete state.pendingCommands[type];
     },
+    setIsControlEnabled: (state, action) => {
+      state.isControlEnabled = action.payload;
+    },
     resetSession: (state) => {
       state.session = null;
       state.selectedDeviceId = null;
@@ -109,6 +113,7 @@ const remoteControlSlice = createSlice({
       state.isScreenMirroring = false;
       state.showNotificationsModal = false;
       state.lastViewedPath = null;
+      state.isControlEnabled = false;
     }
   },
 });
@@ -133,9 +138,10 @@ export const {
   setShowFileExplorer,
   setShowNotificationsModal,
   setThumbnail,
+  setLastViewedPath,
   addPendingCommand,
   removePendingCommand,
-  setLastViewedPath,
+  setIsControlEnabled,
   resetSession
 } = remoteControlSlice.actions;
 
