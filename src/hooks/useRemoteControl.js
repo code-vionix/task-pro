@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useCallback, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import {
@@ -109,6 +110,21 @@ export const useRemoteControl = () => {
       newSocket.on('screen:frame', (data) => {
         if (data.type !== 'camera') {
             dispatch(setScreenFrame(data.frame));
+        }
+      });
+      
+      newSocket.on('notification:receive', (data) => {
+        if (data.notification) {
+          toast.success(data.notification, { 
+            icon: '🔔',
+            duration: 4000,
+            style: {
+              borderRadius: '12px',
+              background: 'var(--surface)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
+            },
+          });
         }
       });
 
