@@ -10,30 +10,23 @@ export const useWebRTC = (socket, sessionId) => {
         const config = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:openrelay.metered.ca:80' },
                 { 
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject' 
+                    urls: 'turn:213.199.58.40:3478?transport=udp',
+                    username: 'codevionix',
+                    credential: 'mirror123' 
                 },
                 { 
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
+                    urls: 'turn:213.199.58.40:3478?transport=tcp',
+                    username: 'codevionix',
+                    credential: 'mirror123'
                 },
                 { 
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                { 
-                    urls: 'turn:stun.is:3478?transport=udp',
-                    username: 'stun',
-                    credential: 'stun' 
-                },
+                    urls: 'turn:213.199.58.40:443?transport=tcp',
+                    username: 'codevionix',
+                    credential: 'mirror123'
+                }
             ],
             iceCandidatePoolSize: 2,
-            iceCandidatePoolSize: 10,
             bundlePolicy: 'max-bundle',
             iceTransportPolicy: 'all',
             rtcpMuxPolicy: 'require'
