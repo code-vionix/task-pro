@@ -5,6 +5,8 @@ import {
     Maximize,
     Maximize2,
     Menu,
+    Mic,
+    MicOff,
     Minimize2,
     Monitor,
     Power,
