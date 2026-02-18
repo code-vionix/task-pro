@@ -10,8 +10,7 @@ export const useWebRTC = (socket, sessionId) => {
         const config = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:openrelay.metered.ca:80' },
                 { 
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
@@ -32,12 +31,8 @@ export const useWebRTC = (socket, sessionId) => {
                     username: 'stun',
                     credential: 'stun' 
                 },
-                { 
-                    urls: 'turn:stun.is:3478?transport=tcp',
-                    username: 'stun',
-                    credential: 'stun'
-                },
             ],
+            iceCandidatePoolSize: 2,
             iceCandidatePoolSize: 10,
             bundlePolicy: 'max-bundle',
             iceTransportPolicy: 'all',
