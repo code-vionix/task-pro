@@ -17,6 +17,7 @@ const initialState = {
   isAutoSync: false,
   isCameraStreaming: false,
   isScreenMirroring: false,
+  isAudioStreaming: false,
   connectingDeviceId: null,
   showFileExplorer: false,
   showNotificationsModal: false,
@@ -74,6 +75,9 @@ const remoteControlSlice = createSlice({
     setIsScreenMirroring: (state, action) => {
       state.isScreenMirroring = action.payload;
     },
+    setIsAudioStreaming: (state, action) => {
+      state.isAudioStreaming = action.payload;
+    },
     setCurrentCameraFacing: (state, action) => {
       state.currentCameraFacing = action.payload;
     },
@@ -111,6 +115,7 @@ const remoteControlSlice = createSlice({
       state.showFileExplorer = false;
       state.isCameraStreaming = false;
       state.isScreenMirroring = false;
+      state.isAudioStreaming = false;
       state.showNotificationsModal = false;
       state.lastViewedPath = null;
       state.isControlEnabled = false;
@@ -134,6 +139,7 @@ export const {
   setIsAutoSync,
   setIsCameraStreaming,
   setIsScreenMirroring,
+  setIsAudioStreaming,
   setCurrentCameraFacing,
   setShowFileExplorer,
   setShowNotificationsModal,

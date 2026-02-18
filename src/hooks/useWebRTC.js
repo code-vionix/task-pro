@@ -75,6 +75,7 @@ export const useWebRTC = (socket, sessionId) => {
         console.log('[WebRTC] Starting WebRTC...');
         const peer = createPeerConnection();
         peer.addTransceiver('video', { direction: 'recvonly' });
+        peer.addTransceiver('audio', { direction: 'recvonly' });
 
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);

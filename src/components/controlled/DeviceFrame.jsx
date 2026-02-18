@@ -49,6 +49,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
     currentCameraFacing, 
     isAutoSync, 
     isCameraStreaming,
+    isAudioStreaming,
     pendingCommands,
     systemStats,
     session,
@@ -59,13 +60,29 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const { startWebRTC, stopWebRTC, stream } = useWebRTC(socket, session?.id);
   const hasStarted = useRef(false);
 
+  // Live Audio handler
+  const handleLiveAudio = () => {
+    if (isAudioStreaming) {
+      sendCommand('AUDIO_STREAM_STOP');
+      dispatch(setIsAudioStreaming(false));
+    } else {
+      sendCommand('AUDIO_STREAM_START');
+      dispatch(setIsAudioStreaming(true));
+      // Start WebRTC if not already started
+      if (!isCameraStreaming && !isScreenMirroring) {
+        startWebRTC();
+        hasStarted.current = true;
+      }
+    }
+  };
+
   // WebRTC management
   useEffect(() => {
     let active = true;
     const manageStream = async () => {
-      if ((isCameraStreaming || isScreenMirroring) && socket && session) {
+      if ((isCameraStreaming || isScreenMirroring || isAudioStreaming) && socket && session) {
         if (!hasStarted.current) {
-          console.log('[DeviceFrame] Starting WebRTC for', isCameraStreaming ? 'camera' : 'screen');
+          console.log('[DeviceFrame] Starting WebRTC for', isCameraStreaming ? 'camera' : isScreenMirroring ? 'screen' : 'audio');
           await startWebRTC();
           if (active) hasStarted.current = true;
         }
@@ -79,7 +96,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
     };
     manageStream();
     return () => { active = false; };
-  }, [isCameraStreaming, isScreenMirroring, socket, session, startWebRTC, stopWebRTC]);
+  }, [isCameraStreaming, isScreenMirroring, isAudioStreaming, socket, session, startWebRTC, stopWebRTC]);
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -265,8 +282,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
     }
   };
 
-  // Only show window when camera or screen is active
-  if (!isCameraStreaming && !isScreenMirroring && !screenFrame && !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START']) {
+  // Only show window when camera, screen, or audio is active
+  if (!isCameraStreaming && !isScreenMirroring && !isAudioStreaming && !screenFrame && !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START']) {
     return null;
   }
 
@@ -318,7 +335,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden flex items-center justify-center">
             {isCameraStreaming ? (
                 <div className="relative w-full h-full">
-                  <video ref={videoRef} autoPlay playsInline muted className={`w-full h-full object-contain ${!stream ? 'hidden' : ''}`} />
+                  <video ref={videoRef} autoPlay playsInline muted={!isAudioStreaming} className={`w-full h-full object-contain ${!stream ? 'hidden' : ''}`} />
                   {!stream && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
                       <RefreshCw className="w-8 h-8 text-primary-main animate-spin" />
@@ -337,7 +354,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                 </div>
               ) : isScreenMirroring ? (
                 <div className="relative w-full h-full">
-                  <video ref={videoRef} autoPlay playsInline muted 
+                  <video ref={videoRef} autoPlay playsInline muted={!isAudioStreaming}
                     onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
                     onMouseUp={(e) => handleInteraction(e, 'mouseup')}
                     className={`w-full h-full object-contain select-none ${!stream ? 'hidden' : ''}`} 
@@ -361,8 +378,21 @@ export default function DeviceFrame({ sendCommand, socket }) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 text-gray-600">
-                   <Monitor className="w-8 h-8 opacity-20" />
-                   <p className="text-xs">Waiting for stream...</p>
+                   {isAudioStreaming ? (
+                      <>
+                        <div className="relative">
+                          <Mic className="w-12 h-12 text-green-500 animate-pulse" />
+                          <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full animate-pulse" />
+                        </div>
+                        <p className="text-xs font-bold text-green-500 tracking-wider">LIVE LISTENING ACTIVE</p>
+                        <audio autoPlay ref={(el) => { if (el && stream) el.srcObject = stream; }} className="hidden" />
+                      </>
+                   ) : (
+                      <>
+                        <Monitor className="w-8 h-8 opacity-20" />
+                        <p className="text-xs">Waiting for stream...</p>
+                      </>
+                   )}
                 </div>
               )}
       </div>
@@ -382,6 +412,13 @@ export default function DeviceFrame({ sendCommand, socket }) {
             </button>
             <button onClick={() => handlePhoneButton('notification')} className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors" title="Notifications">
                <Bell size={14} />
+            </button>
+            <button 
+              onClick={handleLiveAudio} 
+              className={`p-1.5 rounded transition-all ${isAudioStreaming ? 'bg-green-500/20 text-green-500' : 'hover:bg-gray-700 text-gray-400 hover:text-white'}`}
+              title={isAudioStreaming ? "Stop Live Audio" : "Start Live Audio"}
+            >
+               {isAudioStreaming ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} />}
             </button>
          </div>
 
