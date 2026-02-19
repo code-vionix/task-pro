@@ -26,6 +26,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const dispatch = useDispatch();
   const screenRef = useRef(null);
   const videoRef = useRef(null);
+  const audioRef = useRef(null);
   const windowRef = useRef(null);
   
   // Touch interaction state
@@ -101,15 +102,29 @@ export default function DeviceFrame({ sendCommand, socket }) {
   }, [isCameraStreaming, isScreenMirroring, isAudioStreaming, socket, session, startWebRTC, stopWebRTC]);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
+    if (stream) {
       console.log('[WebRTC] Attaching stream');
-      const video = videoRef.current;
-      video.srcObject = stream;
-      video.onloadedmetadata = () => video.play().catch(e => console.error(e));
-      video.onresize = () => { if (video.videoWidth > 0) video.play().catch(() => {}); };
-      video.play().catch(e => console.error('[WebRTC] Play failed:', e));
+      [videoRef.current, audioRef.current].forEach(el => {
+        if (el) {
+          el.srcObject = stream;
+          el.onloadedmetadata = () => el.play().catch(e => console.error(e));
+          el.play().catch(e => console.error('[WebRTC] Play failed:', e));
+        }
+      });
     }
   }, [stream]);
+
+  // Handle audio unmuting explicitly to bypass some browser restrictions
+  useEffect(() => {
+    [videoRef.current, audioRef.current].forEach(el => {
+      if (el) {
+        el.muted = !isAudioStreaming;
+        if (isAudioStreaming) {
+          el.play().catch(e => console.warn('[Audio] Play trigger failed:', e));
+        }
+      }
+    });
+  }, [isAudioStreaming]);
 
   // Window drag handlers
   const handleTitleBarMouseDown = (e) => {
@@ -387,7 +402,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                           <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full animate-pulse" />
                         </div>
                         <p className="text-xs font-bold text-green-500 tracking-wider">LIVE LISTENING ACTIVE</p>
-                        <audio autoPlay ref={(el) => { if (el && stream) el.srcObject = stream; }} className="hidden" />
+                        <audio autoPlay ref={audioRef} className="hidden" />
                       </>
                    ) : (
                       <>
