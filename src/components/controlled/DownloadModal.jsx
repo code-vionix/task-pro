@@ -12,12 +12,12 @@ export default function DownloadModal({ setShowDownloadModal }) {
         </div>
 
         <div className="space-y-4">
-          <a href="/easymirror_v1.22.apk" download className="block bg-green-500 hover:bg-green-600 rounded-2xl p-4 transition-all group">
+          <a href="/easymirror_v1.23.apk" download className="block bg-green-500 hover:bg-green-600 rounded-2xl p-4 transition-all group">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">🤖</div>
               <div className="flex-1">
                 <h4 className="text-white font-bold text-lg">Android</h4>
-                <p className="text-white/80 text-sm">Download v1.22 APK (App Launcher)</p>
+                <p className="text-white/80 text-sm">Download v1.23 APK (App Launcher)</p>
               </div>
               <Download className="w-6 h-6 text-white group-hover:translate-y-1 transition-transform" />
             </div>
