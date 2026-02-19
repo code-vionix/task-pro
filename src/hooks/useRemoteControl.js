@@ -13,12 +13,14 @@ import {
     setCurrentPath,
     setDevices,
     setFiles,
+    setInstalledApps,
     setLastViewedPath,
     setLoading,
     setNotifications,
     setScreenFrame,
     setSelectedDeviceId,
     setSession,
+    setShowAppLauncher,
     setShowFileExplorer,
     setShowNotificationsModal,
     setSystemStats,
@@ -183,6 +185,19 @@ export const useRemoteControl = () => {
             break;
           case 'CAMERA_STREAM_STOP':
             dispatch(setCameraFrame(null));
+            break;
+          case 'GET_INSTALLED_APPS':
+            if (data.result) {
+              let appList = data.result;
+              if (typeof appList === 'string') {
+                try { appList = JSON.parse(appList); } catch(e) {}
+              }
+              const sorted = Array.isArray(appList)
+                ? appList.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                : [];
+              dispatch(setInstalledApps(sorted));
+              dispatch(setShowAppLauncher(true));
+            }
             break;
           default: break;
         }

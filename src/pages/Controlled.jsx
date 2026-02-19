@@ -14,6 +14,7 @@ import {
 
 // Sub-components
 import AddDeviceCard from '../components/controlled/AddDeviceCard';
+import AppLauncher from '../components/controlled/AppLauncher';
 import CommandDashboard from '../components/controlled/CommandDashboard';
 import DeviceCard from '../components/controlled/DeviceCard';
 import DeviceFrame from '../components/controlled/DeviceFrame';
@@ -38,6 +39,7 @@ export default function Controlled() {
     connectingDeviceId,
     showFileExplorer,
     showNotificationsModal,
+    showAppLauncher,
     files,
     lastViewedPath
   } = useSelector((state) => state.remoteControl);
@@ -177,6 +179,9 @@ export default function Controlled() {
             browseFiles={browseFiles} 
             sendCommand={sendCommand} 
           />
+        )}
+        {showAppLauncher && (
+          <AppLauncher sendCommand={sendCommand} />
         )}
       </div>
     );

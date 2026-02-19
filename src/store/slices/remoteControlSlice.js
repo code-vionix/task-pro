@@ -21,6 +21,8 @@ const initialState = {
   connectingDeviceId: null,
   showFileExplorer: false,
   showNotificationsModal: false,
+  showAppLauncher: false,
+  installedApps: [],
   thumbnails: {}, // Cache for image thumbnails
   lastViewedPath: null,
   isControlEnabled: false,
@@ -94,6 +96,12 @@ const remoteControlSlice = createSlice({
     setLastViewedPath: (state, action) => {
       state.lastViewedPath = action.payload;
     },
+    setShowAppLauncher: (state, action) => {
+      state.showAppLauncher = action.payload;
+    },
+    setInstalledApps: (state, action) => {
+      state.installedApps = action.payload;
+    },
     addPendingCommand: (state, action) => {
       const { type } = action.payload;
       state.pendingCommands[type] = true;
@@ -117,6 +125,8 @@ const remoteControlSlice = createSlice({
       state.isScreenMirroring = false;
       state.isAudioStreaming = false;
       state.showNotificationsModal = false;
+      state.showAppLauncher = false;
+      state.installedApps = [];
       state.lastViewedPath = null;
       state.isControlEnabled = false;
     }
@@ -145,6 +155,8 @@ export const {
   setShowNotificationsModal,
   setThumbnail,
   setLastViewedPath,
+  setShowAppLauncher,
+  setInstalledApps,
   addPendingCommand,
   removePendingCommand,
   setIsControlEnabled,

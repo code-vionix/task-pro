@@ -44,7 +44,7 @@ const categories = [
     desc: 'Apps and Settings',
     color: 'emerald',
     actions: [
-      { id: 'apps', label: 'Applications', icon: <LayoutGrid size={18} />, action: 'apps', comingSoon: true },
+      { id: 'apps', label: 'Applications', icon: <LayoutGrid size={18} />, altType: 'GET_INSTALLED_APPS' },
       { id: 'notifications', label: 'Alerts', icon: <Bell size={18} />, altType: 'GET_NOTIFICATIONS' },
       { id: 'vibrate', label: 'Test Vibrate', icon: <Zap size={18} />, action: 'vibrate' },
     ],
