@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReactionType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,15 +13,6 @@ export class PostsController {
       private readonly cloudinaryService: CloudinaryService
   ) {}
 
-  @Post()
-  @UseInterceptors(FileInterceptor('file'))
-  async create(@Request() req, @Body() createPostDto: any, @UploadedFile() file: Express.Multer.File) {
-    let imageUrl = createPostDto.imageUrl;
-    if (file) {
-        imageUrl = await this.cloudinaryService.uploadImage(file);
-    }
-    return this.postsService.create(req.user.userId, { ...createPostDto, imageUrl });
-  }
 
   @Get()
   findAll(
@@ -48,7 +39,7 @@ export class PostsController {
       return this.postsService.sharePost(req.user.userId, id, content);
   }
 
-  @Post(':id/react')
+  @Put(':id/react')
   react(@Request() req, @Param('id') id: string, @Body('type') type: ReactionType) {
       return this.postsService.addReaction(req.user.userId, id, type);
   }
@@ -66,5 +57,15 @@ export class PostsController {
   @Delete(':id')
   remove(@Request() req, @Param('id') id: string) {
     return this.postsService.remove(id, req.user.userId, req.user.role);
+  }
+
+  @Post()
+  @UseInterceptors(FileInterceptor('file'))
+  async create(@Request() req, @Body() createPostDto: any, @UploadedFile() file: Express.Multer.File) {
+    let imageUrl = createPostDto.imageUrl;
+    if (file) {
+        imageUrl = await this.cloudinaryService.uploadImage(file);
+    }
+    return this.postsService.create(req.user.userId, { ...createPostDto, imageUrl });
   }
 }
