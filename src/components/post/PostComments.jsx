@@ -1,5 +1,5 @@
 
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
@@ -113,6 +113,12 @@ function CommentItem({ comment, postId, onUpdate, currentUser, isGuest }) {
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.content);
+  const [showMenu, setShowMenu] = useState(false);
+  
+  const isOwner = currentUser?.id === comment.user.id;
 
   const handleReply = async () => {
     if (isGuest) return toast.error("Observation Mode: Reply restricted.");
@@ -131,6 +137,37 @@ function CommentItem({ comment, postId, onUpdate, currentUser, isGuest }) {
     }
   };
 
+  const handleEdit = async () => {
+    if (!editText.trim() || editText === comment.content) {
+        setIsEditing(false);
+        return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+        await api.patch(`/posts/comment/${comment.id}`, { content: editText });
+        setIsEditing(false);
+        onUpdate();
+        toast.success('Comment updated');
+    } catch {
+        toast.error('Failed to update comment');
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+      if (!confirm('Are you sure you want to delete this comment?')) return;
+      
+      try {
+          await api.delete(`/posts/comment/${comment.id}`);
+          onUpdate();
+          toast.success('Comment deleted');
+      } catch {
+          toast.error('Failed to delete comment');
+      }
+  };
+
   return (
     <div className="flex gap-3 group/comment">
       <Link to={`/profile/${comment.user.id}`} className="shrink-0 mt-1">
@@ -139,11 +176,63 @@ function CommentItem({ comment, postId, onUpdate, currentUser, isGuest }) {
         </div>
       </Link>
       <div className="flex-1 space-y-1.5 min-w-0 text-left">
-        <div className="relative">
-          <div className="bg-[var(--card)] px-4 py-2.5 rounded-2xl rounded-tl-none border border-[var(--border)] group-hover/comment:border-blue-500/20 transition-colors shadow-sm inline-block max-w-full">
-            <Link to={`/profile/${comment.user.id}`} className="text-[10px] font-extrabold text-blue-500 mb-0.5 block hover:underline uppercase tracking-tight italic">{comment.user.email.split('@')[0]}</Link>
-            <p className="text-[12px] font-medium text-[var(--foreground)] opacity-90 leading-normal break-words">{comment.content}</p>
-          </div>
+        <div className="relative group/content flex items-center gap-2">
+          {isEditing ? (
+             <div className="flex-1 max-w-full">
+                 <input 
+                    autoFocus
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    className="w-full bg-[var(--card)] border border-blue-500/50 rounded-xl px-3 py-1.5 text-xs text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm"
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') handleEdit();
+                        if (e.key === 'Escape') {
+                            setEditText(comment.content);
+                            setIsEditing(false);
+                        }
+                    }}
+                 />
+                 <div className="flex gap-2 mt-1">
+                     <button onClick={handleEdit} disabled={isSubmitting} className="text-[10px] font-bold text-blue-500 hover:text-blue-400">Save</button>
+                     <button onClick={() => { setIsEditing(false); setEditText(comment.content); }} className="text-[10px] font-bold text-slate-500 hover:text-slate-400">Cancel</button>
+                 </div>
+             </div>
+          ) : (
+            <>
+                <div className="bg-[var(--card)] px-4 py-2.5 rounded-2xl rounded-tl-none border border-[var(--border)] group-hover/comment:border-blue-500/20 transition-colors shadow-sm inline-block max-w-full relative">
+                    <Link to={`/profile/${comment.user.id}`} className="text-[10px] font-extrabold text-blue-500 mb-0.5 block hover:underline uppercase tracking-tight italic">{comment.user.email.split('@')[0]}</Link>
+                    <p className="text-[12px] font-medium text-[var(--foreground)] opacity-90 leading-normal break-words">{comment.content}</p>
+                </div>
+                
+                {isOwner && !isGuest && (
+                    <div className="relative flex-shrink-0 opacity-0 group-hover/content:opacity-100 transition-opacity">
+                        <button onClick={() => setShowMenu(!showMenu)} className="p-1 rounded-full hover:bg-[var(--secondary)] text-[var(--muted)] hover:text-[var(--foreground)]">
+                           <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                        
+                        {showMenu && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)}></div>
+                                <div className="absolute left-full top-0 ml-1 z-50 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden min-w-[120px] py-1 animate-in fade-in zoom-in-95 duration-200">
+                                    <button 
+                                        onClick={() => { setIsEditing(true); setShowMenu(false); }}
+                                        className="w-full text-left px-3 py-2 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] flex items-center gap-2 transition-colors"
+                                    >
+                                        <Pencil className="w-3 h-3" /> Edit
+                                    </button>
+                                    <button 
+                                        onClick={() => { handleDelete(); setShowMenu(false); }}
+                                        className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-500/10 flex items-center gap-2 transition-colors"
+                                    >
+                                        <Trash2 className="w-3 h-3" /> Delete
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+            </>
+          )}
         </div>
         <div className="flex items-center gap-4 px-2">
           <button 
