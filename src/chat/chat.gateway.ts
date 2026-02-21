@@ -75,6 +75,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
     }
 
+    // Check if they are connected (i.e. one follows the other)
+    if (sender?.role !== 'ADMIN') {
+        const isConnected = await this.prisma.follow.findFirst({
+            where: {
+                OR: [
+                    { followerId: senderId, followingId: receiverId },
+                    { followerId: receiverId, followingId: senderId }
+                ]
+            }
+        });
+
+        if (!isConnected) {
+            client.emit('error', { message: 'You can only message people you follow or who follow you.' });
+            return;
+        }
+    }
+
     // Save message to DB
     const message = await this.prisma.message.create({
       data: {

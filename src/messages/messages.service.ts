@@ -23,21 +23,35 @@ export class MessagesService {
   }
 
   async getRecentChats(userId: string) {
-    const messages = await this.prisma.message.findMany({
+    // 1. Get all connections (users I follow OR who follow me)
+    const follows = await this.prisma.follow.findMany({
       where: {
-        OR: [{ senderId: userId }, { receiverId: userId }],
+        OR: [{ followerId: userId }, { followingId: userId }]
       },
-      orderBy: { createdAt: 'desc' },
       include: {
-        sender: { select: { id: true, email: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } },
-        receiver: { select: { id: true, email: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } },
-        reactions: true,
-      },
+        follower: { select: { id: true, email: true, name: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } },
+        following: { select: { id: true, email: true, name: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } }
+      }
     });
 
     const chatPartners = new Map();
-    
-    // Get unread counts
+
+    // Map connections
+    follows.forEach(f => {
+      const isFollowingMe = f.followingId === userId;
+      const partner = isFollowingMe ? f.follower : f.following;
+      
+      if (!chatPartners.has(partner.id)) {
+        chatPartners.set(partner.id, {
+          ...partner,
+          lastMessage: null,
+          lastTimestamp: null,
+          unreadCount: 0,
+        });
+      }
+    });
+
+    // 2. Get unread counts
     const unreadCounts = await this.prisma.message.groupBy({
       by: ['senderId'],
       where: {
@@ -46,22 +60,50 @@ export class MessagesService {
       },
       _count: true,
     });
-
     const unreadMap = new Map(unreadCounts.map(c => [c.senderId, c._count]));
+
+    // 3. Get recent messages
+    const messages = await this.prisma.message.findMany({
+      where: {
+        OR: [{ senderId: userId }, { receiverId: userId }],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sender: { select: { id: true, email: true, name: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } },
+        receiver: { select: { id: true, email: true, name: true, avatarUrl: true, avatarPosition: true, isOnline: true, lastSeen: true } },
+      },
+    });
 
     messages.forEach((msg) => {
       const partner = msg.senderId === userId ? msg.receiver : msg.sender;
-      if (!chatPartners.has(partner.id)) {
-        chatPartners.set(partner.id, {
-          ...partner,
-          lastMessage: msg.content,
-          lastTimestamp: msg.createdAt,
-          unreadCount: unreadMap.get(partner.id) || 0,
-        });
+      const existing = chatPartners.get(partner.id);
+      
+      if (existing) {
+        if (!existing.lastTimestamp || new Date(msg.createdAt) > new Date(existing.lastTimestamp)) {
+           existing.lastMessage = msg.content;
+           existing.lastTimestamp = msg.createdAt;
+           existing.unreadCount = unreadMap.get(partner.id) || 0;
+           chatPartners.set(partner.id, existing);
+        }
+      } else {
+         // Optional: if they have message history but are not connected, still show them.
+         chatPartners.set(partner.id, {
+           ...partner,
+           lastMessage: msg.content,
+           lastTimestamp: msg.createdAt,
+           unreadCount: unreadMap.get(partner.id) || 0,
+         });
       }
     });
 
-    return Array.from(chatPartners.values());
+    return Array.from(chatPartners.values()).sort((a: any, b: any) => {
+        if (a.lastTimestamp && b.lastTimestamp) {
+             return new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime();
+        }
+        if (a.lastTimestamp) return -1;
+        if (b.lastTimestamp) return 1;
+        return 0;
+    });
   }
 
   async getUnreadCount(userId: string) {
