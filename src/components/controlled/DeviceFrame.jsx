@@ -49,6 +49,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const [resizeStart, setResizeStart] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
   const [unlockType, setUnlockType] = useState('PIN');
   
   const { 
@@ -123,10 +124,16 @@ export default function DeviceFrame({ sendCommand, socket }) {
       socket.on('device:lock_type', (data) => {
         console.log('[RemoteControl] Device lock type detected:', data.lockType);
         setUnlockType(data.lockType);
-        // Automatically show modal if it's on a lock screen
-        setShowPinModal(true);
       });
-      return () => socket.off('device:lock_type');
+
+      socket.on('device:lock_status', (data) => {
+        setIsLocked(data.isLocked);
+      });
+
+      return () => {
+        socket.off('device:lock_type');
+        socket.off('device:lock_status');
+      };
     }
   }, [stream, socket]);
 
@@ -228,6 +235,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const handleWakeUp = () => {
     if (sendCommand) {
       sendCommand('CUSTOM', { action: 'WAKE_UP' });
+      // Also show the PIN modal immediately for a smooth flow
+      setTimeout(() => setShowPinModal(true), 1500);
     }
   };
 
@@ -416,8 +425,21 @@ export default function DeviceFrame({ sendCommand, socket }) {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center gap-3 text-gray-600">
-                   {isAudioStreaming ? (
+                 <div className="flex flex-col items-center justify-center gap-3 text-gray-600">
+                    {isLocked && (
+                      <div 
+                        onClick={handleWakeUp}
+                        className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer group hover:bg-black/20 transition-all"
+                      >
+                         <div className="bg-white/10 p-4 rounded-full border border-white/20 group-hover:scale-110 transition-transform">
+                            <Power className="w-10 h-10 text-yellow-400" />
+                         </div>
+                         <p className="text-white mt-4 font-bold tracking-widest text-sm drop-shadow-lg">DEVICE LOCKED</p>
+                         <p className="text-white/60 text-[10px] uppercase mt-1">Click to wake & unlock</p>
+                      </div>
+                    )}
+
+                    {isAudioStreaming ? (
                       <>
                         <div className="relative">
                           <Mic className="w-12 h-12 text-green-500 animate-pulse" />
