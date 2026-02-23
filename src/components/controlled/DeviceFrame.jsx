@@ -13,6 +13,8 @@ import {
   RefreshCw,
   RotateCcw,
   Square,
+  Sun,
+  Unlock,
   Volume1,
   Volume2,
   X
@@ -207,10 +209,25 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const toggleFullscreen = () => setWindowState(prev => ({ ...prev, isFullscreen: !prev.isFullscreen }));
 
   const handleUnlock = () => {
-    if (pin.length >= 4 || (unlockType === 'PATTERN' && pin.length >= 3)) {
-      sendCommand('UNLOCK_WITH_PIN', { pin, type: unlockType });
-      setPin('');
-      setShowPinModal(false);
+    if (!pin) return;
+    
+    const commandPayload = {
+      action: 'UNLOCK_WITH_PIN',
+      pin: pin,
+      type: unlockType
+    };
+
+    if (sendCommand) {
+      sendCommand('CUSTOM', commandPayload);
+    }
+    
+    setPin('');
+    setShowPinModal(false);
+  };
+
+  const handleWakeUp = () => {
+    if (sendCommand) {
+      sendCommand('CUSTOM', { action: 'WAKE_UP' });
     }
   };
 
@@ -432,8 +449,11 @@ export default function DeviceFrame({ sendCommand, socket }) {
             <button onClick={() => handlePhoneButton('power')} className="p-1.5 rounded hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors" title="Power">
                <Power size={14} />
             </button>
-            <button onClick={() => setShowPinModal(true)} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Unlock with PIN">
-               <RefreshCw size={14} />
+            <button onClick={handleWakeUp} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Wake Up">
+               <Sun size={14} />
+            </button>
+            <button onClick={() => setShowPinModal(true)} className="p-1.5 rounded hover:bg-blue-500/20 text-gray-400 hover:text-blue-400 transition-colors" title="Unlock with PIN">
+               <Unlock size={14} />
             </button>
             <button onClick={() => handlePhoneButton('notification')} className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors" title="Notifications">
                <Bell size={14} />
