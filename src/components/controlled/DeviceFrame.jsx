@@ -1,21 +1,21 @@
 import {
-    Bell,
-    ChevronLeft,
-    Home,
-    Maximize,
-    Maximize2,
-    Menu,
-    Mic,
-    MicOff,
-    Minimize2,
-    Monitor,
-    Power,
-    RefreshCw,
-    RotateCcw,
-    Square,
-    Volume1,
-    Volume2,
-    X
+  Bell,
+  ChevronLeft,
+  Home,
+  Maximize,
+  Maximize2,
+  Menu,
+  Mic,
+  MicOff,
+  Minimize2,
+  Monitor,
+  Power,
+  RefreshCw,
+  RotateCcw,
+  Square,
+  Volume1,
+  Volume2,
+  X
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -45,6 +45,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState('');
   
   const { 
     cameraFrame, 
@@ -112,7 +114,18 @@ export default function DeviceFrame({ sendCommand, socket }) {
         }
       });
     }
-  }, [stream]);
+
+    // Auto-detect lock type from device
+    if (socket) {
+      socket.on('device:lock_type', (data) => {
+        console.log('[RemoteControl] Device lock type detected:', data.lockType);
+        setUnlockType(data.lockType);
+        // Automatically show modal if it's on a lock screen
+        setShowPinModal(true);
+      });
+      return () => socket.off('device:lock_type');
+    }
+  }, [stream, socket]);
 
   // Handle audio unmuting explicitly to bypass some browser restrictions
   useEffect(() => {
@@ -192,20 +205,15 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const toggleMaximize = () => setWindowState(prev => ({ ...prev, isMaximized: !prev.isMaximized }));
   const toggleFullscreen = () => setWindowState(prev => ({ ...prev, isFullscreen: !prev.isFullscreen }));
 
-  // Phone buttons
-  const handlePhoneButton = (button) => {
-    if (!isControlEnabled) return;
-    const keyCodes = { 
-        home: 3, 
-        back: 4, 
-        recent: 187,
-        volume_up: 24,
-        volume_down: 25,
-        power: 26,
-        notification: 83
-    };
-    if (keyCodes[button]) {
-        sendCommand('KEY_EVENT', { keyCode: keyCodes[button] });
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState('');
+  const [unlockType, setUnlockType] = useState('PIN'); // PIN, PATTERN, PASSWORD
+
+  const handleUnlock = () => {
+    if (pin.length >= 4 || (unlockType === 'PATTERN' && pin.length >= 3)) {
+      sendCommand('UNLOCK_WITH_PIN', { pin, type: unlockType });
+      setPin('');
+      setShowPinModal(false);
     }
   };
 
@@ -427,8 +435,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
             <button onClick={() => handlePhoneButton('power')} className="p-1.5 rounded hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors" title="Power">
                <Power size={14} />
             </button>
-            <button onClick={() => sendCommand('WAKE_UP')} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Wake Up / Unlock Screen">
-               <RefreshCw size={14} className={pendingCommands['WAKE_UP'] ? 'animate-spin' : ''} />
+            <button onClick={() => setShowPinModal(true)} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Unlock with PIN">
+               <RefreshCw size={14} />
             </button>
             <button onClick={() => handlePhoneButton('notification')} className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors" title="Notifications">
                <Bell size={14} />
@@ -463,6 +471,63 @@ export default function DeviceFrame({ sendCommand, socket }) {
       {!windowState.isMaximized && !windowState.isFullscreen && (
         <div onMouseDown={handleResizeMouseDown} className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 z-20">
            <div className="w-2 h-2 border-r-2 border-b-2 border-gray-500 rounded-br-sm" />
+        </div>
+      )}
+
+      {/* PIN Unlock Modal */}
+      {showPinModal && (
+        <div className="absolute inset-0 z-[400] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-[320px] shadow-2xl">
+            <h3 className="text-white font-bold text-center mb-4">Remote Unlock</h3>
+            
+            {/* Type Selector */}
+            <div className="flex bg-gray-900 p-1 rounded-lg mb-6">
+              {['PIN', 'PATTERN', 'PASSWORD'].map(type => (
+                <button
+                  key={type}
+                  onClick={() => { setUnlockType(type); setPin(''); }}
+                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${unlockType === type ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type={unlockType === 'PASSWORD' ? 'text' : 'password'}
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-600 rounded-lg py-3 px-4 text-white text-center text-xl focus:outline-none focus:border-blue-500 mb-2"
+              placeholder={unlockType === 'PATTERN' ? 'e.g. 12369' : 'Type here...'}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+            />
+            
+            {unlockType === 'PATTERN' && (
+              <p className="text-[10px] text-gray-500 text-center mb-6 leading-tight">
+                Enter dot numbers (1-9) in order.<br/>
+                1 2 3<br/>
+                4 5 6<br/>
+                7 8 9
+              </p>
+            )}
+            {unlockType !== 'PATTERN' && <div className="mb-6" />}
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowPinModal(false)}
+                className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-xl transition-colors text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUnlock}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-colors text-sm font-semibold"
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
