@@ -427,6 +427,9 @@ export default function DeviceFrame({ sendCommand, socket }) {
             <button onClick={() => handlePhoneButton('power')} className="p-1.5 rounded hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors" title="Power">
                <Power size={14} />
             </button>
+            <button onClick={() => sendCommand('WAKE_UP')} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Wake Up / Unlock Screen">
+               <RefreshCw size={14} className={pendingCommands['WAKE_UP'] ? 'animate-spin' : ''} />
+            </button>
             <button onClick={() => handlePhoneButton('notification')} className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors" title="Notifications">
                <Bell size={14} />
             </button>
