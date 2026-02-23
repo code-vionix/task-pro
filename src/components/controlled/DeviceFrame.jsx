@@ -47,6 +47,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const [resizeStart, setResizeStart] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
+  const [unlockType, setUnlockType] = useState('PIN');
   
   const { 
     cameraFrame, 
@@ -204,10 +205,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const toggleMinimize = () => setWindowState(prev => ({ ...prev, isMinimized: !prev.isMinimized }));
   const toggleMaximize = () => setWindowState(prev => ({ ...prev, isMaximized: !prev.isMaximized }));
   const toggleFullscreen = () => setWindowState(prev => ({ ...prev, isFullscreen: !prev.isFullscreen }));
-
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pin, setPin] = useState('');
-  const [unlockType, setUnlockType] = useState('PIN'); // PIN, PATTERN, PASSWORD
 
   const handleUnlock = () => {
     if (pin.length >= 4 || (unlockType === 'PATTERN' && pin.length >= 3)) {
