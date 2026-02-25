@@ -1,5 +1,5 @@
 
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,6 +22,12 @@ export class UsersController {
   @Get('profile')
   getOwnProfile(@Request() req) {
     return this.usersService.findProfile(req.user.userId);
+  }
+
+  @Get('search')
+  searchUsers(@Query('q') q: string) {
+    if (!q || q.trim().length === 0) return [];
+    return this.usersService.searchUsers(q.trim());
   }
 
   @Get(':id')

@@ -121,6 +121,26 @@ export class UsersService {
     });
   }
 
+  async searchUsers(query: string) {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        isOnline: true,
+      },
+      orderBy: { name: 'asc' },
+      take: 30,
+    });
+  }
+
   async remove(id: string) {
       return this.prisma.user.delete({
           where: { id }
