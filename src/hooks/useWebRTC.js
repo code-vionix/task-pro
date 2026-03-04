@@ -3,6 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export const useWebRTC = (socket, sessionId) => {
     const pc = useRef(null);
     const [stream, setStream] = useState(null);
+    // Buffer for ICE candidates that arrive before remote description is set
+    const iceCandidateBuffer = useRef([]);
+    const remoteDescSet = useRef(false);
 
     const createPeerConnection = useCallback(() => {
         if (pc.current) return pc.current;
@@ -66,6 +69,9 @@ export const useWebRTC = (socket, sessionId) => {
         };
 
         pc.current = peer;
+        // Reset buffering state for a new connection
+        iceCandidateBuffer.current = [];
+        remoteDescSet.current = false;
         return peer;
     }, [socket, sessionId]);
 
@@ -94,6 +100,8 @@ export const useWebRTC = (socket, sessionId) => {
             pc.current.close();
             pc.current = null;
         }
+        iceCandidateBuffer.current = [];
+        remoteDescSet.current = false;
         setStream(null);
     }, []);
 
@@ -105,7 +113,20 @@ export const useWebRTC = (socket, sessionId) => {
             if (pc.current) {
                 try {
                     await pc.current.setRemoteDescription(new RTCSessionDescription(data));
+                    remoteDescSet.current = true;
                     console.log('[WebRTC] SUCCESS: Remote description set');
+
+                    // Flush any buffered ICE candidates that arrived early
+                    console.log(`[WebRTC] Flushing ${iceCandidateBuffer.current.length} buffered ICE candidates`);
+                    for (const candidate of iceCandidateBuffer.current) {
+                        try {
+                            await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                            console.log('[WebRTC] Buffered ICE candidate added successfully');
+                        } catch (e) {
+                            console.warn('[WebRTC] Failed to add buffered ICE candidate:', e.message);
+                        }
+                    }
+                    iceCandidateBuffer.current = [];
                 } catch (e) {
                     console.error('[WebRTC] ERROR: Setting remote description failed:', e);
                 }
@@ -114,17 +135,26 @@ export const useWebRTC = (socket, sessionId) => {
  
         const handleIceCandidate = async (data) => {
             console.log('[WebRTC] RECEIVED ICE CANDIDATE FROM PHONE:', data);
-            if (pc.current) {
-                try {
-                    await pc.current.addIceCandidate(new RTCIceCandidate({
-                        candidate: data.candidate,
-                        sdpMid: data.sdpMid,
-                        sdpMLineIndex: data.sdpMLineIndex
-                    }));
-                    console.log('[WebRTC] SUCCESS: Remote ICE candidate added');
-                } catch (e) {
-                    console.error('[WebRTC] ERROR: Adding received ice candidate failed:', e);
-                }
+            if (!pc.current) return;
+
+            const candidate = {
+                candidate: data.candidate,
+                sdpMid: data.sdpMid,
+                sdpMLineIndex: data.sdpMLineIndex
+            };
+
+            // If remote description not yet set, buffer the candidate
+            if (!remoteDescSet.current) {
+                console.log('[WebRTC] Remote desc not ready, buffering ICE candidate');
+                iceCandidateBuffer.current.push(candidate);
+                return;
+            }
+
+            try {
+                await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+                console.log('[WebRTC] SUCCESS: Remote ICE candidate added');
+            } catch (e) {
+                console.error('[WebRTC] ERROR: Adding received ice candidate failed:', e);
             }
         };
  
