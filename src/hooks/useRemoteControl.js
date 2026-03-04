@@ -77,8 +77,8 @@ export const useRemoteControl = () => {
     dispatch(setCameraFrame(null));
     try {
       const token = localStorage.getItem('access_token');
-      console.log('[RemoteControl] Connecting to /remote-control namespace at:', API_URL);
-      const newSocket = io(`${API_URL}/remote-control`, { 
+      console.log('[RemoteControl] Connecting to root namespace at:', API_URL);
+      const newSocket = io(`${API_URL}`, { 
         auth: { token },
         transports: ['websocket']
       });

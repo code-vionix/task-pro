@@ -48,6 +48,7 @@ export default function Chat() {
 
     const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       query: { userId: currentUser.id },
+      auth: { token: localStorage.getItem('access_token') }
     });
     setSocket(newSocket);
 
