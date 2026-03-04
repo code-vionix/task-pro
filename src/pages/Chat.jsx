@@ -11,11 +11,11 @@ import RestrictedAccess from '../components/chat/RestrictedAccess';
 import { useAuth } from '../context/AuthContext';
 import api from '../lib/api';
 import { MOCK_CHATS_SETS, getSeededSet } from '../lib/guestMockData';
+import CallOverlay from '../components/chat/CallOverlay';
 
 /**
  * Chat Page
  * Orchestrates the entire real-time messaging ecosystem.
- * Refactored into highly modular sub-components for peak maintainability.
  */
 export default function Chat() {
   const { user: currentUser, guestDataSeed } = useAuth();
@@ -30,6 +30,8 @@ export default function Chat() {
   const [socket, setSocket] = useState(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [callState, setCallState] = useState({ isOpen: false, isIncoming: false, peer: null, isVideo: false });
   
   // Logical Restrictions
   const isGuest = currentUser?.role === 'GUEST';
@@ -39,6 +41,39 @@ export default function Chat() {
   const isSocialRestricted = currentUser?.role !== 'ADMIN' && !currentUser?.canUseCommunity;
   const isTotallyBlocked = isMessageRestricted || isSocialRestricted;
 
+  const fetchChats = async () => {
+    if (isGuest || isTotallyBlocked) return;
+    setIsLoading(true);
+    try {
+      const res = await api.get('/messages/chats');
+      setChats(res.data);
+    } catch (err) { console.error('Acquisition failure: Chats', err); }
+    finally { setIsLoading(false); }
+  };
+
+  const fetchUserInfo = async (id) => {
+    try {
+      const res = await api.get(`/users/${id}`);
+      setSelectedUser(res.data);
+    } catch (err) { console.error('Acquisition failure: Entity', err); }
+  };
+
+  const fetchConversation = async (id) => {
+    if (isGuest) {
+      setMessages([
+        { id: 'gm-1', content: 'Simulation message initialized...', createdAt: new Date().toISOString(), senderId: id, sender: { email: 'demo_user' } },
+        { id: 'gm-2', content: 'Protocol synchronization complete.', createdAt: new Date().toISOString(), senderId: currentUser.id, sender: { email: 'guest' } }
+      ]);
+      return;
+    }
+    setIsMessagesLoading(true);
+    try {
+      const res = await api.get(`/messages/conversation/${id}`);
+      setMessages(res.data);
+    } catch (err) { console.error('Acquisition failure: Decryption', err); }
+    finally { setIsMessagesLoading(false); }
+  };
+
   // 1. Socket Lifecycle & Transmission Listeners
   useEffect(() => {
     if (!currentUser?.id || isGuest || isTotallyBlocked) {
@@ -46,7 +81,8 @@ export default function Chat() {
         return;
     }
 
-    const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const newSocket = io(API_URL, {
       query: { userId: currentUser.id },
       auth: { token: localStorage.getItem('access_token') }
     });
@@ -96,50 +132,32 @@ export default function Chat() {
         }
     });
 
+    // Event: Incoming Call
+    newSocket.on('incomingCall', (data) => {
+        setCallState({
+            isOpen: true,
+            isIncoming: true,
+            peer: { id: data.senderId, email: data.senderName, avatarUrl: data.senderAvatar },
+            isVideo: data.isVideo
+        });
+    });
+
+    newSocket.on('callEnded', () => setCallState({ isOpen: false, isIncoming: false, peer: null, isVideo: false }));
+    newSocket.on('callRejected', () => {
+        setCallState({ isOpen: false, isIncoming: false, peer: null, isVideo: false });
+        toast.error('Call rejected');
+    });
+
     // Event: Signal Erasure
     newSocket.on('messageDeleted', ({ messageId }) => {
         setMessages(prev => prev.filter(m => m.id !== messageId));
         fetchChats();
     });
 
-    return () => newSocket.disconnect();
+    return () => {
+        newSocket.disconnect();
+    };
   }, [currentUser?.id, isGuest, isTotallyBlocked, selectedUser?.id]);
-
-  // 2. Data Acquisition
-  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
-
-  const fetchChats = async () => {
-    if (isGuest || isTotallyBlocked) return;
-    setIsLoading(true);
-    try {
-      const res = await api.get('/messages/chats');
-      setChats(res.data);
-    } catch (err) { console.error('Acquisition failure: Chats', err); }
-    finally { setIsLoading(false); }
-  };
-
-  const fetchUserInfo = async (id) => {
-    try {
-      const res = await api.get(`/users/${id}`);
-      setSelectedUser(res.data);
-    } catch (err) { console.error('Acquisition failure: Entity', err); }
-  };
-
-  const fetchConversation = async (id) => {
-    if (isGuest) {
-      setMessages([
-        { id: 'gm-1', content: 'Simulation message initialized...', createdAt: new Date().toISOString(), senderId: id, sender: { email: 'demo_user' } },
-        { id: 'gm-2', content: 'Protocol synchronization complete.', createdAt: new Date().toISOString(), senderId: currentUser.id, sender: { email: 'guest' } }
-      ]);
-      return;
-    }
-    setIsMessagesLoading(true);
-    try {
-      const res = await api.get(`/messages/conversation/${id}`);
-      setMessages(res.data);
-    } catch (err) { console.error('Acquisition failure: Decryption', err); }
-    finally { setIsMessagesLoading(false); }
-  };
 
   useEffect(() => {
     if (!isGuest && !isTotallyBlocked) fetchChats();
@@ -149,7 +167,7 @@ export default function Chat() {
     }
   }, [targetUserId, isGuest, isTotallyBlocked]);
 
-  // 3. Operational Handlers
+  // Operational Handlers
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (isGuest) return toast.error("Guest Protocol: Transmission restricted.");
@@ -157,10 +175,29 @@ export default function Chat() {
 
     const messageData = { senderId: currentUser?.id, receiverId: selectedUser.id, content: input };
     socket.emit('sendMessage', messageData, (response) => {
-        setMessages(prev => [...prev, response]);
-        fetchChats();
+        if (response) {
+            setMessages(prev => [...prev, response]);
+            fetchChats();
+        }
     });
     setInput('');
+  };
+
+  const handleInitiateCall = (video = false) => {
+    if (!selectedUser) return;
+    setCallState({
+        isOpen: true,
+        isIncoming: false,
+        peer: selectedUser,
+        isVideo: video
+    });
+    socket.emit('initiateCall', {
+        receiverId: selectedUser.id,
+        senderId: currentUser.id,
+        senderName: currentUser.email.split('@')[0],
+        senderAvatar: currentUser.avatarUrl,
+        isVideo: video
+    });
   };
 
   const handleSelectChat = (user) => {
@@ -202,8 +239,6 @@ export default function Chat() {
 
   return (
     <div className="h-[calc(100vh-100px)] md:h-[calc(100vh-160px)] flex border border-[var(--border)] glass rounded-[2rem] overflow-hidden shadow-2xl relative">
-        
-        {/* 1. Universal Security Overlay */}
         {(isGuest || isTotallyBlocked) && (
             <RestrictedAccess 
                 isTotallyBlocked={isTotallyBlocked} 
@@ -212,7 +247,6 @@ export default function Chat() {
             />
         )}
 
-        {/* 2. Primary Navigation: Conversations List */}
         <ChatSidebar 
           chats={chats} 
           selectedUser={selectedUser} 
@@ -222,7 +256,6 @@ export default function Chat() {
           isLoading={isLoading} 
         />
 
-        {/* 3. Secondary Navigation: Content Pane */}
         <main className={clsx(
           "flex-1 flex flex-col relative overflow-hidden transition-all duration-300",
           showSidebar && "hidden md:flex"
@@ -233,7 +266,10 @@ export default function Chat() {
                 messages={messages}
                 currentUser={currentUser}
                 isGuest={isGuest}
-                onBack={() => setShowSidebar(true)}
+                onBack={() => {
+                    setSelectedUser(null);
+                    setShowSidebar(true);
+                }}
                 onSend={handleSendMessage}
                 input={input}
                 setInput={setInput}
@@ -241,11 +277,27 @@ export default function Chat() {
                 onDelete={handleDeleteMessage}
                 formatLastSeen={formatLastSeen}
                 isLoading={isMessagesLoading}
+                onCall={handleInitiateCall}
             />
           ) : (
             <ChatWelcome isGuest={isGuest} />
           )}
         </main>
+
+        {callState.isOpen && (
+            <CallOverlay 
+                isOpen={callState.isOpen}
+                isIncoming={callState.isIncoming}
+                peer={callState.peer}
+                isVideo={callState.isVideo}
+                socket={socket}
+                currentUser={currentUser}
+                onAccept={() => {
+                    socket.emit('answerCall', { callerId: callState.peer.id, receiverId: currentUser.id });
+                }}
+                onClose={() => setCallState({ ...callState, isOpen: false })}
+            />
+        )}
     </div>
   );
 }

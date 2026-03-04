@@ -1,11 +1,10 @@
 
-import clsx from 'clsx';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Phone, Video } from 'lucide-react';
 
 /**
  * ChatWindowHeader displays the active chat partner's info and status.
  */
-export default function ChatWindowHeader({ selectedUser, onBack, isGuest, formatLastSeen }) {
+export default function ChatWindowHeader({ selectedUser, onBack, isGuest, formatLastSeen, onCall }) {
   return (
     <div className="h-20 px-4 md:px-8 flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/40 backdrop-blur-md relative z-10">
       {isGuest && (
@@ -56,6 +55,23 @@ export default function ChatWindowHeader({ selectedUser, onBack, isGuest, format
             </span>
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center gap-1 md:gap-2 z-[2]">
+          <button 
+            onClick={() => onCall(false)}
+            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+            title="Audio Call"
+          >
+            <Phone className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
+          <button 
+            onClick={() => onCall(true)}
+            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+            title="Video Call"
+          >
+            <Video className="w-5 h-5 md:w-6 md:h-6" />
+          </button>
       </div>
     </div>
   );
