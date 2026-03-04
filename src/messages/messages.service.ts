@@ -175,7 +175,7 @@ export class MessagesService {
       return conversations;
   }
   async createMessage(senderId: string, data: { receiverId: string, content?: string, messageType?: string, fileUrl?: string, fileName?: string }) {
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         senderId,
         receiverId: data.receiverId,

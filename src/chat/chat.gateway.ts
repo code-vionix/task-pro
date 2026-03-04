@@ -1,13 +1,13 @@
 
 import { OnEvent } from '@nestjs/event-emitter';
 import {
-  ConnectedSocket,
-  MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  SubscribeMessage,
-  WebSocketGateway,
-  WebSocketServer,
+    ConnectedSocket,
+    MessageBody,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    SubscribeMessage,
+    WebSocketGateway,
+    WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../messages/messages.service';
@@ -37,26 +37,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     console.log(`[ChatGateway] Broadcaster: Message ${message.id} from ${senderId} to ${receiverId}`);
 
-    // Send to both namespaces to ensure web and app sync
-    const namespaces = ['/', '/remote-control'];
-    namespaces.forEach((ns) => {
-      const roomReceiver = `user_${receiverId}`;
-      const roomSender = `user_${senderId}`;
-      
-      this.server.of(ns).to(roomReceiver).emit('newMessage', message);
-      this.server.of(ns).to(roomSender).emit('newMessage', message);
-      
-      console.log(`[ChatGateway] Emitted 'newMessage' to ${ns} rooms: ${roomReceiver}, ${roomSender}`);
-    });
+    const roomReceiver = `user_${receiverId}`;
+    const roomSender = `user_${senderId}`;
+    
+    this.server.to(roomReceiver).emit('newMessage', message);
+    this.server.to(roomSender).emit('newMessage', message);
+    
+    console.log(`[ChatGateway] Emitted 'newMessage' to rooms: ${roomReceiver}, ${roomSender}`);
   }
 
   @OnEvent('messages.read')
   handleMessagesRead(payload: { senderId: string; readerId: string }) {
     const { senderId, readerId } = payload;
-    const namespaces = ['/', '/remote-control'];
-    namespaces.forEach(ns => {
-        this.server.of(ns).to(`user_${senderId}`).emit('messagesRead', { readerId });
-    });
+    this.server.to(`user_${senderId}`).emit('messagesRead', { readerId });
   }
 
   async handleConnection(client: Socket) {
@@ -68,10 +61,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         where: { id: userId },
         data: { isOnline: true, lastSeen: new Date() },
       });
-      const namespaces = ['/', '/remote-control'];
-      namespaces.forEach(ns => {
-        this.server.of(ns).emit('userStatusChanged', { userId, isOnline: true });
-      });
+      this.server.emit('userStatusChanged', { userId, isOnline: true });
       console.log(`User connected: ${userId} with socket ${client.id}`);
     }
   }
@@ -84,10 +74,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           where: { id: userId },
           data: { isOnline: false, lastSeen: new Date() },
         });
-        const namespaces = ['/', '/remote-control'];
-        namespaces.forEach(ns => {
-          this.server.of(ns).emit('userStatusChanged', { userId, isOnline: false });
-        });
+        this.server.emit('userStatusChanged', { userId, isOnline: false });
         console.log(`User disconnected: ${userId}`);
         break;
       }

@@ -18,7 +18,7 @@ import { RemoteControlService } from './remote-control.service';
     origin: '*',
   },
   maxHttpBufferSize: 1e8, // 100 MB for large payloads (images)
-  namespace: '/remote-control',
+  // namespace: '/remote-control',
 })
 export class RemoteControlGateway
   implements OnGatewayConnection, OnGatewayDisconnect
