@@ -1,4 +1,5 @@
 
+import { JwtService } from '@nestjs/jwt';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
     ConnectedSocket,
@@ -15,9 +16,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
-  cors: {
-    origin: '*',
-  },
+  cors: { origin: '*' },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -26,65 +25,85 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private connectedUsers = new Map<string, string>(); // userId -> socketId
 
   constructor(
+    private jwtService: JwtService,
     private prisma: PrismaService,
     private notifications: NotificationsService,
     private messagesService: MessagesService,
   ) {}
 
+  // ─── Connection Lifecycle ─────────────────────────────────────────────────────
+
+  async handleConnection(client: Socket) {
+    // Support both query (mobile) and auth (web)
+    const token = (client.handshake.auth?.token || client.handshake.query?.token) as string;
+    const queryUserId = client.handshake.query?.userId as string;
+
+    let userId: string | null = null;
+
+    // Try JWT first
+    if (token) {
+      try {
+        const decoded: any = this.jwtService.verify(token);
+        userId = decoded.sub;
+      } catch (e) {
+        console.warn(`[ChatGateway] JWT verify failed for ${client.id}: ${e.message}`);
+      }
+    }
+
+    // Fallback: use query userId (only allow if we already trust this socket layer)
+    if (!userId && queryUserId) {
+      userId = queryUserId;
+    }
+
+    if (!userId) {
+      console.error(`[ChatGateway] No userId for ${client.id}, disconnecting.`);
+      client.disconnect();
+      return;
+    }
+
+    client['userId'] = userId;
+    this.connectedUsers.set(userId, client.id);
+    client.join(`user_${userId}`);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isOnline: true, lastSeen: new Date() },
+    });
+    this.server.emit('userStatusChanged', { userId, isOnline: true });
+    console.log(`[ChatGateway] Connected: ${userId} (${client.id})`);
+  }
+
+  async handleDisconnect(client: Socket) {
+    const userId = client['userId'];
+    if (!userId) return;
+
+    this.connectedUsers.delete(userId);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isOnline: false, lastSeen: new Date() },
+    }).catch(() => {}); // ignore if user deleted
+    this.server.emit('userStatusChanged', { userId, isOnline: false });
+    console.log(`[ChatGateway] Disconnected: ${userId}`);
+  }
+
+  // ─── Event Listeners (Internal) ───────────────────────────────────────────────
+
   @OnEvent('message.created')
   handleMessageCreated(message: any) {
-    const receiverId = message.receiverId;
-    const senderId = message.senderId;
-
-    console.log(`[ChatGateway] Broadcaster: Message ${message.id} from ${senderId} to ${receiverId}`);
-
-    const roomReceiver = `user_${receiverId}`;
-    const roomSender = `user_${senderId}`;
-    
-    this.server.to(roomReceiver).emit('newMessage', message);
-    
-    // Only emit to sender room if they are different users
+    const { receiverId, senderId } = message;
+    this.server.to(`user_${receiverId}`).emit('newMessage', message);
     if (receiverId !== senderId) {
-        this.server.to(roomSender).emit('newMessage', message);
+      this.server.to(`user_${senderId}`).emit('newMessage', message);
     }
-    
-    console.log(`[ChatGateway] Emitted 'newMessage' to rooms: ${roomReceiver}${receiverId !== senderId ? ', ' + roomSender : ''}`);
+    console.log(`[ChatGateway] newMessage dispatched: ${senderId} → ${receiverId}`);
   }
 
   @OnEvent('messages.read')
   handleMessagesRead(payload: { senderId: string; readerId: string }) {
-    const { senderId, readerId } = payload;
-    this.server.to(`user_${senderId}`).emit('messagesRead', { readerId });
+    this.server.to(`user_${payload.senderId}`).emit('messagesRead', { readerId: payload.readerId });
   }
 
-  async handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      this.connectedUsers.set(userId, client.id);
-      client.join(`user_${userId}`); // Join user-specific room
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { isOnline: true, lastSeen: new Date() },
-      });
-      this.server.emit('userStatusChanged', { userId, isOnline: true });
-      console.log(`User connected: ${userId} with socket ${client.id}`);
-    }
-  }
-
-  async handleDisconnect(client: Socket) {
-    for (const [userId, socketId] of this.connectedUsers.entries()) {
-      if (socketId === client.id) {
-        this.connectedUsers.delete(userId);
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { isOnline: false, lastSeen: new Date() },
-        });
-        this.server.emit('userStatusChanged', { userId, isOnline: false });
-        console.log(`User disconnected: ${userId}`);
-        break;
-      }
-    }
-  }
+  // ─── Chat Events ──────────────────────────────────────────────────────────────
 
   @SubscribeMessage('sendMessage')
   async handleMessage(
@@ -92,41 +111,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { receiverId: string; content: string; senderId: string; tempId?: string },
   ) {
     const { receiverId, content, senderId, tempId } = data;
-
-    // Check permissions
     const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
+
     if (sender && !sender.canMessage && sender.role !== 'ADMIN') {
-        client.emit('error', { message: 'You are restricted from sending messages' });
-        return;
+      client.emit('error', { message: 'You are restricted from sending messages' });
+      return;
     }
     if (sender && !sender.canUseCommunity && sender.role !== 'ADMIN') {
-        client.emit('error', { message: 'Community access restricted' });
-        return;
+      client.emit('error', { message: 'Community access restricted' });
+      return;
     }
-
-    // Check if they are connected (i.e. one follows the other)
     if (sender?.role !== 'ADMIN') {
-        const isConnected = await this.prisma.follow.findFirst({
-            where: {
-                OR: [
-                    { followerId: senderId, followingId: receiverId },
-                    { followerId: receiverId, followingId: senderId }
-                ]
-            }
-        });
-
-        if (!isConnected) {
-            client.emit('error', { message: 'You can only message people you follow or who follow you.' });
-            return;
-        }
+      const isConnected = await this.prisma.follow.findFirst({
+        where: {
+          OR: [
+            { followerId: senderId, followingId: receiverId },
+            { followerId: receiverId, followingId: senderId },
+          ],
+        },
+      });
+      if (!isConnected) {
+        client.emit('error', { message: 'You can only message people you follow or who follow you.' });
+        return;
+      }
     }
-
-    // Save message via Service (which emits event)
-    return this.messagesService.createMessage(senderId, {
-        receiverId,
-        content,
-        tempId
-    });
+    return this.messagesService.createMessage(senderId, { receiverId, content, tempId });
   }
 
   @SubscribeMessage('reactToMessage')
@@ -135,25 +144,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { messageId: string; type: string; userId: string; receiverId: string },
   ) {
     const { messageId, type, userId, receiverId } = data;
-
     const reaction = await this.prisma.messageReaction.upsert({
-      where: {
-        userId_messageId: {
-          userId,
-          messageId,
-        },
-      },
+      where: { userId_messageId: { userId, messageId } },
       update: { type },
-      create: {
-        userId,
-        messageId,
-        type,
-      },
+      create: { userId, messageId, type },
     });
-
-    // Notify receiver room
     this.server.to(`user_${receiverId}`).emit('messageReaction', { messageId, reaction, senderId: userId });
-
     return reaction;
   }
 
@@ -163,8 +159,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { senderId: string; userId: string },
   ) {
-    const { senderId, userId } = data;
-    return this.messagesService.markAsRead(userId, senderId);
+    return this.messagesService.markAsRead(data.userId, data.senderId);
   }
 
   @SubscribeMessage('deleteMessage')
@@ -172,22 +167,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { messageId: string; userId: string; receiverId: string },
   ) {
-    const { messageId, userId, receiverId } = data;
-
-    // Check ownership or admin and delete
-    const message = await this.prisma.message.findUnique({ 
-        where: { id: messageId },
-        include: { sender: true }
+    const { messageId, userId } = data;
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { sender: true },
     });
-    
-    // Get user role for deletion
     const requestor = await this.prisma.user.findUnique({ where: { id: userId } });
     const isAdmin = requestor?.role === 'ADMIN';
 
     if (message && (message.senderId === userId || isAdmin)) {
       await this.prisma.message.delete({ where: { id: messageId } });
-      
-      // Notify both sender and receiver
       this.server.to(`user_${message.senderId}`).emit('messageDeleted', { messageId });
       this.server.to(`user_${message.receiverId}`).emit('messageDeleted', { messageId });
     }
@@ -198,8 +187,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { receiverId: string; senderId: string },
   ) {
-    const { receiverId, senderId } = data;
-    this.server.to(`user_${receiverId}`).emit('typing', { senderId });
+    this.server.to(`user_${data.receiverId}`).emit('typing', { senderId: data.senderId });
   }
 
   @SubscribeMessage('stopTyping')
@@ -207,22 +195,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { receiverId: string; senderId: string },
   ) {
-    const { receiverId, senderId } = data;
-    this.server.to(`user_${receiverId}`).emit('stopTyping', { senderId });
+    this.server.to(`user_${data.receiverId}`).emit('stopTyping', { senderId: data.senderId });
   }
 
-  // --- Calling Feature Signaling ---
+  // ─── Calling Feature ──────────────────────────────────────────────────────────
 
   @SubscribeMessage('initiateCall')
   handleInitiateCall(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { receiverId: string; senderId: string; senderName: string; senderAvatar?: string; isVideo: boolean },
   ) {
-    const { receiverId } = data;
-    console.log(`[Call] Initiate: From ${data.senderId} to ${receiverId} (Video: ${data.isVideo})`);
-    this.server.to(`user_${receiverId}`).emit('incomingCall', {
-        ...data,
-        fromSocketId: client.id
+    const senderId = client['userId'] || data.senderId;
+    console.log(`[Call] 📞 Initiate: ${senderId} → ${data.receiverId} (video=${data.isVideo})`);
+
+    this.server.to(`user_${data.receiverId}`).emit('incomingCall', {
+      senderId,
+      receiverId: data.receiverId,
+      senderName: data.senderName,
+      senderAvatar: data.senderAvatar || '',
+      isVideo: data.isVideo,
     });
   }
 
@@ -231,9 +222,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { callerId: string; receiverId: string },
   ) {
-    const { callerId } = data;
-    console.log(`[Call] Answered: By ${data.receiverId} for caller ${callerId}`);
-    this.server.to(`user_${callerId}`).emit('callAccepted', data);
+    console.log(`[Call] ✅ Accepted: ${data.receiverId} answered ${data.callerId}`);
+    this.server.to(`user_${data.callerId}`).emit('callAccepted', {
+      callerId: data.callerId,
+      receiverId: data.receiverId,
+    });
   }
 
   @SubscribeMessage('rejectCall')
@@ -241,9 +234,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { callerId: string; receiverId: string; reason?: string },
   ) {
-    const { callerId } = data;
-    console.log(`[Call] Rejected: By ${data.receiverId} (Caller: ${callerId})`);
-    this.server.to(`user_${callerId}`).emit('callRejected', data);
+    console.log(`[Call] ❌ Rejected: ${data.receiverId} rejected ${data.callerId}`);
+    this.server.to(`user_${data.callerId}`).emit('callRejected', {
+      callerId: data.callerId,
+      receiverId: data.receiverId,
+      reason: data.reason || 'declined',
+    });
   }
 
   @SubscribeMessage('call:signal')
@@ -251,11 +247,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { targetId: string; signal: any },
   ) {
-    const { targetId } = data;
-    // Relay WebRTC SDP (Offer/Answer) or ICE Candidates
-    this.server.to(`user_${targetId}`).emit('call:signal', {
-        senderId: client['userId'],
-        signal: data.signal
+    const senderId = client['userId'];
+    // Relay WebRTC signaling data (SDP offer/answer, ICE candidates)
+    this.server.to(`user_${data.targetId}`).emit('call:signal', {
+      senderId,
+      signal: data.signal,
     });
   }
 
@@ -264,10 +260,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { targetId: string },
   ) {
-    const { targetId } = data;
-    console.log(`[Call] Ended by ${client['userId']} for ${targetId}`);
-    this.server.to(`user_${targetId}`).emit('callEnded', {
-        fromId: client['userId']
+    const senderId = client['userId'];
+    console.log(`[Call] 📵 Ended: ${senderId} ended call with ${data.targetId}`);
+    this.server.to(`user_${data.targetId}`).emit('callEnded', {
+      fromId: senderId,
     });
   }
 }
