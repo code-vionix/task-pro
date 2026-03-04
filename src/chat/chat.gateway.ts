@@ -210,4 +210,64 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { receiverId, senderId } = data;
     this.server.to(`user_${receiverId}`).emit('stopTyping', { senderId });
   }
+
+  // --- Calling Feature Signaling ---
+
+  @SubscribeMessage('initiateCall')
+  handleInitiateCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { receiverId: string; senderId: string; senderName: string; senderAvatar?: string; isVideo: boolean },
+  ) {
+    const { receiverId } = data;
+    console.log(`[Call] Initiate: From ${data.senderId} to ${receiverId} (Video: ${data.isVideo})`);
+    this.server.to(`user_${receiverId}`).emit('incomingCall', {
+        ...data,
+        fromSocketId: client.id
+    });
+  }
+
+  @SubscribeMessage('answerCall')
+  handleAnswerCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { callerId: string; receiverId: string },
+  ) {
+    const { callerId } = data;
+    console.log(`[Call] Answered: By ${data.receiverId} for caller ${callerId}`);
+    this.server.to(`user_${callerId}`).emit('callAccepted', data);
+  }
+
+  @SubscribeMessage('rejectCall')
+  handleRejectCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { callerId: string; receiverId: string; reason?: string },
+  ) {
+    const { callerId } = data;
+    console.log(`[Call] Rejected: By ${data.receiverId} (Caller: ${callerId})`);
+    this.server.to(`user_${callerId}`).emit('callRejected', data);
+  }
+
+  @SubscribeMessage('call:signal')
+  handleCallSignal(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetId: string; signal: any },
+  ) {
+    const { targetId } = data;
+    // Relay WebRTC SDP (Offer/Answer) or ICE Candidates
+    this.server.to(`user_${targetId}`).emit('call:signal', {
+        senderId: client['userId'],
+        signal: data.signal
+    });
+  }
+
+  @SubscribeMessage('endCall')
+  handleEndCall(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetId: string },
+  ) {
+    const { targetId } = data;
+    console.log(`[Call] Ended by ${client['userId']} for ${targetId}`);
+    this.server.to(`user_${targetId}`).emit('callEnded', {
+        fromId: client['userId']
+    });
+  }
 }
