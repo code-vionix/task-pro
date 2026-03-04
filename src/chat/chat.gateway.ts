@@ -11,8 +11,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from '../messages/messages.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -85,9 +85,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { receiverId: string; content: string; senderId: string },
+    @MessageBody() data: { receiverId: string; content: string; senderId: string; tempId?: string },
   ) {
-    const { receiverId, content, senderId } = data;
+    const { receiverId, content, senderId, tempId } = data;
 
     // Check permissions
     const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
@@ -120,7 +120,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Save message via Service (which emits event)
     return this.messagesService.createMessage(senderId, {
         receiverId,
-        content
+        content,
+        tempId
     });
   }
 

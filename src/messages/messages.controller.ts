@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { MessagesService } from './messages.service';
 import { CloudinaryService } from '../common/cloudinary.service';
+import { MessagesService } from './messages.service';
 
 @Controller('messages')
 @UseGuards(JwtAuthGuard)
@@ -19,6 +19,7 @@ export class MessagesController {
     @Body('receiverId') receiverId: string,
     @Body('messageType') messageType: string,
     @Body('content') content: string,
+    @Body('tempId') tempId: string,
     @UploadedFile() file: Express.Multer.File
   ) {
     let fileUrl = '';
@@ -30,7 +31,8 @@ export class MessagesController {
         messageType,
         content,
         fileUrl,
-        fileName: file?.originalname
+        fileName: file?.originalname,
+        tempId
     });
   }
 

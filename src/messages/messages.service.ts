@@ -175,7 +175,7 @@ export class MessagesService {
 
       return conversations;
   }
-  async createMessage(senderId: string, data: { receiverId: string, content?: string, messageType?: string, fileUrl?: string, fileName?: string }) {
+  async createMessage(senderId: string, data: { receiverId: string, content?: string, messageType?: string, fileUrl?: string, fileName?: string, tempId?: string }) {
     const message = await this.prisma.message.create({
       data: {
         senderId,
@@ -190,8 +190,10 @@ export class MessagesService {
       }
     });
 
-    this.eventEmitter.emit('message.created', message);
-    return message;
+
+    const messageWithTemp = { ...message, tempId: data.tempId };
+    this.eventEmitter.emit('message.created', messageWithTemp);
+    return messageWithTemp;
   }
 
   async getSharedMedia(userId: string, otherUserId: string, types: string[]) {
