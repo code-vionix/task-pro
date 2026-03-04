@@ -1,10 +1,12 @@
-
-import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class MessagesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2
+  ) {}
 
   async getConversation(userId: string, otherUserId: string) {
     return this.prisma.message.findMany({
@@ -116,7 +118,7 @@ export class MessagesService {
   }
 
   async markAsRead(userId: string, senderId: string) {
-    return this.prisma.message.updateMany({
+    const result = await this.prisma.message.updateMany({
       where: {
         senderId,
         receiverId: userId,
@@ -124,6 +126,9 @@ export class MessagesService {
       },
       data: { isRead: true },
     });
+    
+    this.eventEmitter.emit('messages.read', { senderId, readerId: userId });
+    return result;
   }
 
    async remove(id: string, userId: string, userRole: string = 'USER') {
@@ -183,6 +188,9 @@ export class MessagesService {
         sender: { select: { id: true, email: true, avatarUrl: true, isOnline: true } }
       }
     });
+
+    this.eventEmitter.emit('message.created', message);
+    return message;
   }
 
   async getSharedMedia(userId: string, otherUserId: string, types: string[]) {

@@ -9,6 +9,7 @@ import {
     WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { MessagesService } from '../messages/messages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RemoteControlService } from './remote-control.service';
 
@@ -17,7 +18,7 @@ import { RemoteControlService } from './remote-control.service';
     origin: '*',
   },
   maxHttpBufferSize: 1e8, // 100 MB for large payloads (images)
-  namespace: 'remote-control',
+  namespace: '/remote-control',
 })
 export class RemoteControlGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -29,6 +30,7 @@ export class RemoteControlGateway
     private readonly remoteControlService: RemoteControlService,
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly messagesService: MessagesService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -70,7 +72,10 @@ export class RemoteControlGateway
         where: { id: userId },
         data: { isOnline: data.isOnline, lastSeen: new Date() },
       });
-      this.server.emit('userStatusChanged', { userId, isOnline: data.isOnline });
+      const namespaces = ['/', '/remote-control'];
+      namespaces.forEach(ns => {
+        this.server.of(ns).emit('userStatusChanged', { userId, isOnline: data.isOnline });
+      });
       console.log(`User presence updated: ${userId} -> ${data.isOnline}`);
     }
   }
@@ -82,7 +87,10 @@ export class RemoteControlGateway
             where: { id: userId },
             data: { isOnline: false, lastSeen: new Date() },
         });
-        this.server.emit('userStatusChanged', { userId, isOnline: false });
+        const namespaces = ['/', '/remote-control'];
+        namespaces.forEach(ns => {
+            this.server.of(ns).emit('userStatusChanged', { userId, isOnline: false });
+        });
     }
     console.log(`Client disconnected: ${client.id}`);
     await this.remoteControlService.handleDeviceDisconnect(client.id);
@@ -425,6 +433,7 @@ export class RemoteControlGateway
   ) {
     const { receiverId, content, senderId } = data;
     const authenticatedUserId = client['userId'];
+    console.log(`[RemoteControlGateway] sendMessage received from ${authenticatedUserId} for ${receiverId}`);
 
     // Verify senderId matches authenticated user unless Admin
     // (This is important for security as app provides senderId)
@@ -441,46 +450,20 @@ export class RemoteControlGateway
         return;
     }
 
-    // Save message to DB
-    const message = await this.prisma.message.create({
-      data: {
-        content,
-        senderId: authenticatedUserId,
+    // Save message via Service (which emits event)
+    return this.messagesService.createMessage(authenticatedUserId, {
         receiverId,
-      },
-      include: {
-        sender: { select: { email: true, avatarUrl: true, avatarPosition: true } },
-      },
+        content
     });
-
-    // Send to both namespaces to ensure web and app sync
-    const namespaces = ['/', '/remote-control'];
-    namespaces.forEach(ns => {
-        this.server.of(ns).to(`user_${receiverId}`).emit('newMessage', message);
-        client.broadcast.to(ns).to(`user_${authenticatedUserId}`).emit('newMessage', message);
-    });
-
-    return message;
   }
 
   @SubscribeMessage('markAsRead')
+  @SubscribeMessage('readMessage')
   async handleMarkAsRead(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { senderId: string; userId: string },
   ) {
       const authId = client['userId'];
-      await this.prisma.message.updateMany({
-          where: {
-              senderId: data.senderId,
-              receiverId: authId,
-              isRead: false,
-          },
-          data: { isRead: true },
-      });
-      // Notify sender in both namespaces
-      const namespaces = ['/', '/remote-control'];
-      namespaces.forEach(ns => {
-          this.server.of(ns).to(`user_${data.senderId}`).emit('messagesRead', { readerId: authId });
-      });
+      return this.messagesService.markAsRead(authId, data.senderId);
   }
 }

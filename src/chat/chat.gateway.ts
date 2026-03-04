@@ -1,15 +1,16 @@
 
+import { OnEvent } from '@nestjs/event-emitter';
 import {
-    ConnectedSocket,
-    MessageBody,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-    SubscribeMessage,
-    WebSocketGateway,
-    WebSocketServer,
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { NotificationsService } from '../notifications/notifications.service';
+import { MessagesService } from '../messages/messages.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
@@ -26,7 +27,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private messagesService: MessagesService,
   ) {}
+
+  @OnEvent('message.created')
+  handleMessageCreated(message: any) {
+    const receiverId = message.receiverId;
+    const senderId = message.senderId;
+
+    console.log(`[ChatGateway] Broadcaster: Message ${message.id} from ${senderId} to ${receiverId}`);
+
+    // Send to both namespaces to ensure web and app sync
+    const namespaces = ['/', '/remote-control'];
+    namespaces.forEach((ns) => {
+      const roomReceiver = `user_${receiverId}`;
+      const roomSender = `user_${senderId}`;
+      
+      this.server.of(ns).to(roomReceiver).emit('newMessage', message);
+      this.server.of(ns).to(roomSender).emit('newMessage', message);
+      
+      console.log(`[ChatGateway] Emitted 'newMessage' to ${ns} rooms: ${roomReceiver}, ${roomSender}`);
+    });
+  }
+
+  @OnEvent('messages.read')
+  handleMessagesRead(payload: { senderId: string; readerId: string }) {
+    const { senderId, readerId } = payload;
+    const namespaces = ['/', '/remote-control'];
+    namespaces.forEach(ns => {
+        this.server.of(ns).to(`user_${senderId}`).emit('messagesRead', { readerId });
+    });
+  }
 
   async handleConnection(client: Socket) {
     const userId = client.handshake.query.userId as string;
@@ -37,7 +68,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         where: { id: userId },
         data: { isOnline: true, lastSeen: new Date() },
       });
-      this.server.emit('userStatusChanged', { userId, isOnline: true });
+      const namespaces = ['/', '/remote-control'];
+      namespaces.forEach(ns => {
+        this.server.of(ns).emit('userStatusChanged', { userId, isOnline: true });
+      });
       console.log(`User connected: ${userId} with socket ${client.id}`);
     }
   }
@@ -50,7 +84,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           where: { id: userId },
           data: { isOnline: false, lastSeen: new Date() },
         });
-        this.server.emit('userStatusChanged', { userId, isOnline: false });
+        const namespaces = ['/', '/remote-control'];
+        namespaces.forEach(ns => {
+          this.server.of(ns).emit('userStatusChanged', { userId, isOnline: false });
+        });
         console.log(`User disconnected: ${userId}`);
         break;
       }
@@ -92,26 +129,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
     }
 
-    // Save message to DB
-    const message = await this.prisma.message.create({
-      data: {
-        content,
-        senderId,
+    // Save message via Service (which emits event)
+    return this.messagesService.createMessage(senderId, {
         receiverId,
-      },
-      include: {
-        sender: { select: { email: true, avatarUrl: true, avatarPosition: true } },
-      },
+        content
     });
-
-    // Send to both namespaces to ensure web and app sync
-    const namespaces = ['/', '/remote-control'];
-    namespaces.forEach(ns => {
-        this.server.of(ns).to(`user_${receiverId}`).emit('newMessage', message);
-        client.broadcast.to(ns).to(`user_${senderId}`).emit('newMessage', message);
-    });
-
-    return message;
   }
 
   @SubscribeMessage('reactToMessage')
@@ -143,23 +165,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('markAsRead')
+  @SubscribeMessage('readMessage')
   async handleMarkAsRead(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { senderId: string; userId: string },
   ) {
     const { senderId, userId } = data;
-
-    await this.prisma.message.updateMany({
-      where: {
-        senderId,
-        receiverId: userId,
-        isRead: false,
-      },
-      data: { isRead: true },
-    });
-
-    // Notify original sender room
-    this.server.to(`user_${senderId}`).emit('messagesRead', { readerId: userId });
+    return this.messagesService.markAsRead(userId, senderId);
   }
 
   @SubscribeMessage('deleteMessage')
