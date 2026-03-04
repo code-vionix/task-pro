@@ -1,5 +1,6 @@
 
 import { ArrowLeft, Phone, Video } from 'lucide-react';
+import clsx from 'clsx';
 
 /**
  * ChatWindowHeader displays the active chat partner's info and status.
