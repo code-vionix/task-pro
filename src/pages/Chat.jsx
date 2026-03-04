@@ -56,6 +56,7 @@ export default function Chat() {
         setMessages(prev => {
             const isRelevant = msg.senderId === selectedUser?.id || msg.receiverId === selectedUser?.id;
             if (isRelevant) {
+                if (prev.find(m => m.id === msg.id)) return prev;
                 if (msg.senderId === selectedUser?.id) {
                     newSocket.emit('markAsRead', { senderId: msg.senderId, userId: currentUser.id });
                     api.patch(`/messages/read/${msg.senderId}`);
