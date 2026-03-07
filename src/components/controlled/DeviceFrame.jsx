@@ -1,23 +1,23 @@
 import {
-  Bell,
-  ChevronLeft,
-  Home,
-  Maximize,
-  Maximize2,
-  Menu,
-  Mic,
-  MicOff,
-  Minimize2,
-  Monitor,
-  Power,
-  RefreshCw,
-  RotateCcw,
-  Square,
-  Sun,
-  Unlock,
-  Volume1,
-  Volume2,
-  X
+    Bell,
+    ChevronLeft,
+    Home,
+    Maximize,
+    Maximize2,
+    Menu,
+    Mic,
+    MicOff,
+    Minimize2,
+    Monitor,
+    Power,
+    RefreshCw,
+    RotateCcw,
+    Square,
+    Sun,
+    Unlock,
+    Volume1,
+    Volume2,
+    X
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -86,23 +86,55 @@ export default function DeviceFrame({ sendCommand, socket }) {
   };
 
   // WebRTC management
+  const previousMode = useRef(null);
+  
   useEffect(() => {
     let active = true;
+    
+    // Determine current active mode
+    let mode = null;
+    if (isCameraStreaming) mode = 'camera';
+    else if (isScreenMirroring) mode = 'screen';
+    else if (isAudioStreaming) mode = 'audio';
+
     const manageStream = async () => {
-      if ((isCameraStreaming || isScreenMirroring || isAudioStreaming) && socket && session) {
-        if (!hasStarted.current) {
-          console.log('[DeviceFrame] Starting WebRTC for', isCameraStreaming ? 'camera' : isScreenMirroring ? 'screen' : 'audio');
+      if (mode && socket && session) {
+        // If mode changed (e.g. from camera to screen), we MUST restart WebRTC
+        if (previousMode.current !== mode) {
+          console.log(`[DeviceFrame] Mode change detected: ${previousMode.current} -> ${mode}. Restarting WebRTC.`);
+          
+          if (hasStarted.current) {
+            stopWebRTC();
+            hasStarted.current = false;
+          }
+          
+          await new Promise(r => setTimeout(r, 800)); // Wait for Android camera/screen to initialize
           await startWebRTC();
-          if (active) hasStarted.current = true;
+          if (active) {
+            hasStarted.current = true;
+            previousMode.current = mode;
+          }
+        } else if (!hasStarted.current) {
+          // Normal start if not started yet
+          console.log(`[DeviceFrame] Starting WebRTC for ${mode}`);
+          await new Promise(r => setTimeout(r, 800)); // Wait for Android camera/screen to initialize
+          await startWebRTC();
+          if (active) {
+            hasStarted.current = true;
+            previousMode.current = mode;
+          }
         }
       } else {
+        // Stop if nothing is streaming
         if (hasStarted.current) {
-          console.log('[DeviceFrame] Stopping WebRTC');
+          console.log('[DeviceFrame] Stopping WebRTC (No active streams)');
           stopWebRTC();
           hasStarted.current = false;
+          previousMode.current = null;
         }
       }
     };
+    
     manageStream();
     return () => { active = false; };
   }, [isCameraStreaming, isScreenMirroring, isAudioStreaming, socket, session, startWebRTC, stopWebRTC]);

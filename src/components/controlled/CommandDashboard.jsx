@@ -123,8 +123,6 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
       if (isScreenMirroring) {
         // If already mirroring, check if we are just switching modes
         if ((isControl && !isControlEnabled) || (!isControl && isControlEnabled)) {
-          // Validation: For mode switching, we can still allow or ask to stop. 
-          // But to follow your rule strictly: "close mirroring and try again"
           toast.error('A Mirroring session is already active. Stop it first to switch modes.', {
             icon: '⚠️'
           });

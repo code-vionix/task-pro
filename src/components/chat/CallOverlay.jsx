@@ -1,5 +1,5 @@
 
-import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff, X } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function CallOverlay({ 
@@ -123,11 +123,12 @@ export default function CallOverlay({
         socket.on('call:signal', async (data) => {
             if (data.signal.sdp) {
                 if (data.signal.sdp.type === 'offer') {
-                    // Logic handled in onAccept usually, but for signaling relay:
                     if (pc.current) {
-                         await pc.current.setRemoteDescription(new RTCSessionDescription(data.signal.sdp));
+                         const offerDesc = new RTCSessionDescription(data.signal.sdp);
+                         await pc.current.setRemoteDescription(offerDesc);
                          const answer = await pc.current.createAnswer();
                          await pc.current.setLocalDescription(answer);
+                         
                          socket.emit('call:signal', {
                              targetId: peer.id,
                              signal: { sdp: answer }
@@ -135,7 +136,8 @@ export default function CallOverlay({
                     }
                 } else if (data.signal.sdp.type === 'answer') {
                     if (pc.current) {
-                        await pc.current.setRemoteDescription(new RTCSessionDescription(data.signal.sdp));
+                        const answerDesc = new RTCSessionDescription(data.signal.sdp);
+                        await pc.current.setRemoteDescription(answerDesc);
                     }
                 }
             } else if (data.signal.candidate) {

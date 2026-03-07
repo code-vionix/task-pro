@@ -180,6 +180,23 @@ export const useRemoteControl = () => {
               dispatch(setThumbnail({ path: data.path, data: `data:image/jpeg;base64,${data.result}` }));
             }
             break;
+          case 'CAMERA_STREAM_START':
+            if (data.status === 'COMPLETED') {
+              dispatch(setIsCameraStreaming(true));
+              toast.success('Live Camera active');
+            } else {
+              toast.error('Failed to start camera: ' + (data.error || 'Unknown error'));
+            }
+            break;
+          case 'CONTROL_START':
+            if (data.status === 'COMPLETED') {
+              const payControl = data.result?.control || false;
+              dispatch(setIsScreenMirroring(true));
+              // Note: the exact control boolean might need to be passed down.
+              // Assuming 'CONTROL_START' event payload tells if it's mirroring or control
+              toast.success(`Session started successfully`);
+            }
+            break;
           case 'SCREEN_SHARE_STOP':
             dispatch(setScreenFrame(null));
             break;
