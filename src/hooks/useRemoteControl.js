@@ -14,6 +14,8 @@ import {
     setDevices,
     setFiles,
     setInstalledApps,
+    setIsCameraStreaming,
+    setIsScreenMirroring,
     setLastViewedPath,
     setLoading,
     setNotifications,
@@ -190,11 +192,10 @@ export const useRemoteControl = () => {
             break;
           case 'CONTROL_START':
             if (data.status === 'COMPLETED') {
-              const payControl = data.result?.control || false;
               dispatch(setIsScreenMirroring(true));
-              // Note: the exact control boolean might need to be passed down.
-              // Assuming 'CONTROL_START' event payload tells if it's mirroring or control
               toast.success(`Session started successfully`);
+            } else {
+              toast.error('Failed to start session: ' + (data.error || 'Unknown error'));
             }
             break;
           case 'SCREEN_SHARE_STOP':

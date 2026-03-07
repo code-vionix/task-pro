@@ -108,13 +108,11 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         }
         dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
         sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
-            dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
-            if (response && response.success) {
-               dispatch(setIsCameraStreaming(true));
-               toast.success('Live Camera active');
-            } else {
-               toast.error('Failed to start camera');
+            if (!response || !response.success) {
+               dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
+               toast.error('Failed to start camera request');
             }
+            // State update is deferred until 'command:completed' event with 'COMPLETED' status arrives in useRemoteControl.js.
         });
       }
     } else if (act.id === 'screen_mirror' || act.id === 'remote_control') {
@@ -145,14 +143,11 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
           return;
         }
         dispatch(addPendingCommand({ type: 'CONTROL_START' }));
+        dispatch(setIsControlEnabled(isControl)); // Set it early, will be effective when isScreenMirroring becomes true
         sendCommand('CONTROL_START', { control: isControl }, (response) => {
-          dispatch(removePendingCommand({ type: 'CONTROL_START' }));
-          if (response?.status === "COMPLETED" || response?.success) {
-            dispatch(setIsScreenMirroring(true));
-            dispatch(setIsControlEnabled(isControl));
-            toast.success(`${isControl ? 'Remote Control' : 'Mirroring'} started`);
-          } else {
-            toast.error('Failed to start session');
+          if (!response || !(response.status === "COMPLETED" || response.success)) {
+            dispatch(removePendingCommand({ type: 'CONTROL_START' }));
+            toast.error('Failed to start session request');
           }
         });
       }
