@@ -360,6 +360,10 @@ export default function DeviceFrame({ sendCommand, socket }) {
       dispatch(setIsScreenMirroring(false));
       dispatch(setScreenFrame(null));
     }
+    if (isAudioStreaming) {
+      sendCommand('AUDIO_STREAM_STOP');
+      dispatch(setIsAudioStreaming(false));
+    }
   };
 
   // Only show window when camera, screen, or audio is active

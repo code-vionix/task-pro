@@ -98,56 +98,33 @@ export default function CommandDashboard({ sendCommand, browseFiles }) {
         dispatch(setCameraFrame(null));
         toast.success('Camera stream stopped');
       } else {
-        // Validation: Block if mirroring is active
-        if (isScreenMirroring) {
-          toast.error('Mirroring is active. Please close Mirroring and try again.', {
-             icon: '⚠️',
-             duration: 4000
-          });
-          return;
-        }
+        // Toggle on: Start camera
         dispatch(addPendingCommand({ type: 'CAMERA_STREAM_START' }));
-        sendCommand('CAMERA_STREAM_START', { facing: 0 }, (response) => {
+        // Default to front camera (1) as it's more common for remote check
+        sendCommand('CAMERA_STREAM_START', { facing: 1 }, (response) => {
             if (!response || !response.success) {
                dispatch(removePendingCommand({ type: 'CAMERA_STREAM_START' }));
-               toast.error('Failed to start camera request');
+               // Android might still return success even if it automatically stops mirroring
             }
-            // State update is deferred until 'command:completed' event with 'COMPLETED' status arrives in useRemoteControl.js.
         });
       }
     } else if (act.id === 'screen_mirror' || act.id === 'remote_control') {
       const isControl = act.id === 'remote_control';
 
-      if (isScreenMirroring) {
-        // If already mirroring, check if we are just switching modes
-        if ((isControl && !isControlEnabled) || (!isControl && isControlEnabled)) {
-          toast.error('A Mirroring session is already active. Stop it first to switch modes.', {
-            icon: '⚠️'
-          });
-          return;
-        } else {
-          // Just stop
-          sendCommand('SCREEN_SHARE_STOP');
-          dispatch(setIsScreenMirroring(false));
-          dispatch(setScreenFrame(null));
-          dispatch(setIsControlEnabled(false));
-          toast.success('Mirroring stopped');
-        }
+      if (isScreenMirroring && isControl === isControlEnabled) {
+        // Already in this mode? Stop it.
+        sendCommand('SCREEN_SHARE_STOP');
+        dispatch(setIsScreenMirroring(false));
+        dispatch(setScreenFrame(null));
+        dispatch(setIsControlEnabled(false));
+        toast.success('Mirroring stopped');
       } else {
-        // Validation: Block if camera is active
-        if (isCameraStreaming) {
-          toast.error('Camera is active. Please close Camera and try again.', {
-            icon: '⚠️',
-            duration: 4000
-          });
-          return;
-        }
+        // Switch to mirroring/control (even if camera is on)
         dispatch(addPendingCommand({ type: 'CONTROL_START' }));
-        dispatch(setIsControlEnabled(isControl)); // Set it early, will be effective when isScreenMirroring becomes true
+        dispatch(setIsControlEnabled(isControl)); 
         sendCommand('CONTROL_START', { control: isControl }, (response) => {
           if (!response || !(response.status === "COMPLETED" || response.success)) {
             dispatch(removePendingCommand({ type: 'CONTROL_START' }));
-            toast.error('Failed to start session request');
           }
         });
       }
