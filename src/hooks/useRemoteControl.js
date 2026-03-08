@@ -89,17 +89,31 @@ export const useRemoteControl = () => {
       newSocket.on('connect', () => {
         console.log('[RemoteControl] Connected to /remote-control! Socket ID:', newSocket.id);
         dispatch(setConnectingDeviceId(deviceId));
-        newSocket.emit('session:start', { deviceId }, (response) => {
-          if (response.success) {
-            dispatch(setSession(response.session));
-            dispatch(setSelectedDeviceId(deviceId));
-            newSocket.emit('command:send', { sessionId: response.session.id, type: 'GET_STATS', payload: {} });
-          } else {
-            alert('Failed to start session: ' + response.error);
-          }
-          dispatch(setLoading(false));
-          dispatch(setConnectingDeviceId(null));
-        });
+        
+        // Wait a small moment before requesting a new session 
+        // to let any previous cleanup finish on the device
+        setTimeout(() => {
+          newSocket.emit('session:start', { deviceId }, (response) => {
+            if (response.success) {
+              dispatch(setSession(response.session));
+              dispatch(setSelectedDeviceId(deviceId));
+              
+              // Immediate stats fetch for coordinates setup
+              newSocket.emit('command:send', { 
+                  sessionId: response.session.id, 
+                  type: 'GET_STATS', 
+                  payload: {} 
+              });
+              
+              toast.success('Device linked successfully');
+            } else {
+              toast.error('Failed to start session: ' + (response.error || 'Device unavailable'));
+              dispatch(resetSession());
+            }
+            dispatch(setLoading(false));
+            dispatch(setConnectingDeviceId(null));
+          });
+        }, 1500);
       });
 
       newSocket.on('connect_error', () => dispatch(setLoading(false)));

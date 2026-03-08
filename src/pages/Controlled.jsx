@@ -147,7 +147,7 @@ export default function Controlled() {
                 <span className="text-[9px] font-bold text-primary-main uppercase">CMD: {lastCommandStatus.type}</span>
               </div>
            )}
-           <p className="text-[9px] font-black text-muted-main/50 tracking-[0.2em] uppercase">V2.4.9</p>
+           <p className="text-[9px] font-black text-muted-main/50 tracking-[0.2em] uppercase">V2.5.0</p>
         </div>
 
         {showNotificationsModal && (

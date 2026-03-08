@@ -48,8 +48,10 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [touchIndicator, setTouchIndicator] = useState(null);
   const [pin, setPin] = useState('');
   const [isLocked, setIsLocked] = useState(false);
+  const [isScreenOn, setIsScreenOn] = useState(true);
   const [unlockType, setUnlockType] = useState('PIN');
   
   const { 
@@ -160,6 +162,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
       socket.on('device:lock_status', (data) => {
         setIsLocked(data.isLocked);
+        if (data.isScreenOn !== undefined) setIsScreenOn(data.isScreenOn);
       });
 
       return () => {
@@ -168,6 +171,44 @@ export default function DeviceFrame({ sendCommand, socket }) {
       };
     }
   }, [stream, socket]);
+
+  // Sync with store stats for initial load
+  useEffect(() => {
+    if (systemStats.isLocked !== undefined) setIsLocked(systemStats.isLocked);
+    if (systemStats.isScreenOn !== undefined) setIsScreenOn(systemStats.isScreenOn);
+  }, [systemStats.isLocked, systemStats.isScreenOn]);
+  
+  // Keyboard Support: Sync physical keyboard with remote device
+  useEffect(() => {
+    if (!isControlEnabled || !isScreenMirroring) return;
+
+    const handleKeyDown = (e) => {
+      // Ignore if user is typing in a web input field (like PIN modal)
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      
+      // Control keys
+      if (e.key === 'Backspace') {
+        sendCommand('KEY_EVENT', { keyCode: 67 }); // KEYCODE_DEL
+        return;
+      }
+      if (e.key === 'Enter') {
+        sendCommand('KEY_EVENT', { keyCode: 66 }); // KEYCODE_ENTER
+        return;
+      }
+      if (e.key === 'Escape') {
+        handlePhoneButton('back');
+        return;
+      }
+
+      // Simple text input
+      if (e.key.length === 1) {
+        sendCommand('TYPE_TEXT', { text: e.key });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isControlEnabled, isScreenMirroring]);
 
   // Handle audio unmuting explicitly to bypass some browser restrictions
   useEffect(() => {
@@ -264,6 +305,24 @@ export default function DeviceFrame({ sendCommand, socket }) {
     setShowPinModal(false);
   };
 
+  const handlePhoneButton = (type) => {
+    let keyCode = -1;
+    switch (type) {
+      case 'home': keyCode = 3; break;
+      case 'back': keyCode = 4; break;
+      case 'recent': keyCode = 187; break;
+      case 'notification': keyCode = 83; break;
+      case 'power': keyCode = 26; break;
+      case 'volume_up': keyCode = 24; break;
+      case 'volume_down': keyCode = 25; break;
+      default: break;
+    }
+
+    if (keyCode !== -1 && sendCommand) {
+      sendCommand('KEY_EVENT', { keyCode });
+    }
+  };
+
   const handleWakeUp = () => {
     if (sendCommand) {
       sendCommand('CUSTOM', { action: 'WAKE_UP' });
@@ -276,16 +335,22 @@ export default function DeviceFrame({ sendCommand, socket }) {
   const handleInteraction = (e, type) => {
     if (!isControlEnabled) return;
     const activeRef = isScreenMirroring ? videoRef : screenRef;
-    if (!activeRef.current || !systemStats.screenWidth || !systemStats.screenHeight) return;
+    if (!activeRef.current) return;
+
+    // Prevent default browser behavior (like dragging the image)
+    if (type === 'mousedown') e.preventDefault();
 
     const rect = activeRef.current.getBoundingClientRect();
     const clientX = e.clientX;
     const clientY = e.clientY;
 
-    // Calculate the actual displayed dimensions of the video/image within the container
-    // assuming object-fit: contain
+    // Use current resolution if available, otherwise fallback to standard 1080x1920
+    const screenWidth = systemStats.screenWidth || 1080;
+    const screenHeight = systemStats.screenHeight || 1920;
+
+    // Calculate the actual displayed dimensions (object-fit: contain)
     const containerRatio = rect.width / rect.height;
-    const streamRatio = systemStats.screenWidth / systemStats.screenHeight;
+    const streamRatio = screenWidth / screenHeight;
 
     let displayedWidth = rect.width;
     let displayedHeight = rect.height;
@@ -293,38 +358,62 @@ export default function DeviceFrame({ sendCommand, socket }) {
     let offsetY = 0;
 
     if (containerRatio > streamRatio) {
-      // Container is wider than the stream (pillarbox: black bars on sides)
       displayedWidth = rect.height * streamRatio;
       offsetX = (rect.width - displayedWidth) / 2;
     } else {
-      // Container is taller than the stream (letterbox: black bars on top/bottom)
       displayedHeight = rect.width / streamRatio;
       offsetY = (rect.height - displayedHeight) / 2;
     }
 
-    // Relative coordinates within the actual displayed content
     const relX = clientX - rect.left - offsetX;
-    const relY = clientY - rect.top - offsetY;
+    let relY = clientY - rect.top - offsetY;
 
-    // Check if click is inside the displayed content
-    if (relX < 0 || relX > displayedWidth || relY < 0 || relY > displayedHeight) {
-      return; // Ignore clicks on the black bars
-    }
+    // Apply a 3% positive bias to shift the touch DOWN.
+    // The user reported that clicking an item triggers the one ABOVE it,
+    // which means the touch is shifted up. We add to relY to fix this.
+    const yBias = displayedHeight * 0.03; 
+    relY += yBias;
 
-    // Map to actual device coordinates
-    const x = (relX / displayedWidth) * systemStats.screenWidth;
-    const y = (relY / displayedHeight) * systemStats.screenHeight;
+    // Normalized coordinates (0.0 to 1.0)
+    const normX = Math.max(0, Math.min(1, relX / displayedWidth));
+    const normY = Math.max(0, Math.min(1, relY / displayedHeight));
+    
+    console.log(`[TouchDebug] CursorY: ${relY - yBias}, AppliedY: ${relY}, NormY: ${normY}`);
 
     if (type === 'mousedown') {
-      setDragStart({ x, y, time: Date.now() });
-    } else if (type === 'mouseup') {
+      setDragStart({ x: normX, y: normY, time: Date.now() });
+    } else if (type === 'mouseup' || type === 'mouseleave') {
       if (!dragStart) return;
+      
       const duration = Date.now() - dragStart.time;
-      const dist = Math.sqrt(Math.pow(x - dragStart.x, 2) + Math.pow(y - dragStart.y, 2));
-      if (dist < 10 && duration < 300) {
-        sendCommand('TOUCH_CLICK', { x, y });
-      } else {
-        sendCommand('TOUCH_SWIPE', { x1: dragStart.x, y1: dragStart.y, x2: x, y2: y, duration: Math.max(duration, 200) });
+      const dist = Math.sqrt(Math.pow(normX - dragStart.x, 2) + Math.pow(normY - dragStart.y, 2));
+
+      if (type === 'mouseup') {
+        setTouchIndicator({ x: clientX - rect.left, y: clientY - rect.top });
+        setTimeout(() => setTouchIndicator(null), 300);
+      }
+
+      if (!isControlEnabled) return;
+
+      if (type === 'mouseup' && dist < 0.04) {
+        // Only trigger click/long-press if inside the bounds
+        if (normX >= 0 && normX <= 1 && normY >= 0 && normY <= 1) {
+          if (duration < 500) {
+            console.log('[Control] Sending CLICK:', { x: normX, y: normY });
+            sendCommand('TOUCH_CLICK', { x: normX, y: normY, normalized: true });
+          } else {
+            console.log('[Control] Sending LONG_PRESS:', { x: normX, y: normY });
+            sendCommand('TOUCH_LONG_PRESS', { x: normX, y: normY, normalized: true });
+          }
+        }
+      } else if (dist >= 0.04) {
+        console.log('[Control] Sending SWIPE:', { x1: dragStart.x, y1: dragStart.y, x2: normX, y2: normY });
+        sendCommand('TOUCH_SWIPE', { 
+            x1: dragStart.x, y1: dragStart.y, 
+            x2: normX, y2: normY, 
+            duration: Math.max(duration, 250),
+            normalized: true 
+        });
       }
       setDragStart(null);
     }
@@ -367,7 +456,9 @@ export default function DeviceFrame({ sendCommand, socket }) {
   };
 
   // Only show window when camera, screen, or audio is active
-  if (!isCameraStreaming && !isScreenMirroring && !isAudioStreaming && !screenFrame && !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START']) {
+  if (!isCameraStreaming && !isScreenMirroring && !isAudioStreaming && !screenFrame && 
+      !pendingCommands['SCREEN_SHARE_START'] && !pendingCommands['CAMERA_STREAM_START'] && 
+      !pendingCommands['CONTROL_START'] && !pendingCommands['remote_control']) {
     return null;
   }
 
@@ -441,6 +532,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
                   <video ref={videoRef} autoPlay playsInline muted={!isAudioStreaming}
                     onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
                     onMouseUp={(e) => handleInteraction(e, 'mouseup')}
+                    onMouseLeave={(e) => handleInteraction(e, 'mouseleave')}
+                    onContextMenu={(e) => e.preventDefault()}
                     className={`w-full h-full object-contain select-none ${!stream ? 'hidden' : ''}`} 
                   />
                   {!stream && (
@@ -455,7 +548,13 @@ export default function DeviceFrame({ sendCommand, socket }) {
                 </div>
               ) : screenFrame ? (
                 <div className="relative w-full h-full">
-                  <img ref={screenRef} src={`data:image/jpeg;base64,${screenFrame}`} className="w-full h-full object-contain select-none" alt="Screen" onMouseDown={(e) => handleInteraction(e, 'mousedown')} onMouseUp={(e) => handleInteraction(e, 'mouseup')} draggable={false} />
+                  <img ref={screenRef} src={`data:image/jpeg;base64,${screenFrame}`} className="w-full h-full object-contain select-none" alt="Screen" 
+                    onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
+                    onMouseUp={(e) => handleInteraction(e, 'mouseup')} 
+                    onMouseLeave={(e) => handleInteraction(e, 'mouseleave')}
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false} 
+                  />
                   <div className={`absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase pointer-events-none ${isControlEnabled ? 'bg-primary-main/80' : 'bg-orange-500/80'}`}>
                      {isControlEnabled ? 'Live Control' : 'View Only'}
                   </div>
@@ -492,6 +591,14 @@ export default function DeviceFrame({ sendCommand, socket }) {
                    )}
                 </div>
               )}
+              
+              {/* Activity Indicator: Visual dot where user clicks */}
+              {touchIndicator && (
+                <div 
+                  className="absolute w-6 h-6 bg-primary-main/40 border border-white/50 rounded-full animate-ping pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: touchIndicator.x, top: touchIndicator.y }}
+                />
+              )}
       </div>
 
       {/* Bottom Controls */}
@@ -507,12 +614,16 @@ export default function DeviceFrame({ sendCommand, socket }) {
             <button onClick={() => handlePhoneButton('power')} className="p-1.5 rounded hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors" title="Power">
                <Power size={14} />
             </button>
-            <button onClick={handleWakeUp} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Wake Up">
-               <Sun size={14} />
-            </button>
-            <button onClick={() => setShowPinModal(true)} className="p-1.5 rounded hover:bg-blue-500/20 text-gray-400 hover:text-blue-400 transition-colors" title="Unlock with PIN">
-               <Unlock size={14} />
-            </button>
+            {(isLocked || !isScreenOn) && (
+              <>
+                <button onClick={handleWakeUp} className="p-1.5 rounded hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 transition-colors" title="Wake Up">
+                   <Sun size={14} />
+                </button>
+                <button onClick={() => setShowPinModal(true)} className="p-1.5 rounded hover:bg-blue-500/20 text-gray-400 hover:text-blue-400 transition-colors" title="Unlock with PIN">
+                   <Unlock size={14} />
+                </button>
+              </>
+            )}
             <button onClick={() => handlePhoneButton('notification')} className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors" title="Notifications">
                <Bell size={14} />
             </button>
