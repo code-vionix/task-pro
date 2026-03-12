@@ -248,6 +248,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('userRinging')
+  handleUserRinging(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetId: string },
+  ) {
+    const senderId = client['userId'];
+    this.server.to(`user_${data.targetId}`).emit('userRinging', {
+      senderId,
+    });
+  }
+
   @SubscribeMessage('endCall')
   handleEndCall(
     @ConnectedSocket() client: Socket,
