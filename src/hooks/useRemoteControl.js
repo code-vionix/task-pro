@@ -79,7 +79,7 @@ export const useRemoteControl = () => {
     dispatch(setCameraFrame(null));
     try {
       const token = localStorage.getItem('access_token');
-      console.log('[RemoteControl] Connecting to root namespace at:', API_URL);
+      
       const newSocket = io(`${API_URL}`, { 
         auth: { token },
         transports: ['websocket']
@@ -87,7 +87,7 @@ export const useRemoteControl = () => {
       setSocket(newSocket);
 
       newSocket.on('connect', () => {
-        console.log('[RemoteControl] Connected to /remote-control! Socket ID:', newSocket.id);
+        
         dispatch(setConnectingDeviceId(deviceId));
         
         // Wait a small moment before requesting a new session 
@@ -192,7 +192,7 @@ export const useRemoteControl = () => {
             if (data.status === 'FAILED') {
               console.error(`Thumbnail failed for ${data.path}: ${data.error}`);
             } else if (data.result && data.path) {
-              console.log(`Thumbnail received for ${data.path}`);
+              
               dispatch(setThumbnail({ path: data.path, data: `data:image/jpeg;base64,${data.result}` }));
             }
             break;

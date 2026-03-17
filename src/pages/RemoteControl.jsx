@@ -64,7 +64,7 @@ export default function RemoteControl() {
       // Listen for session status
       newSocket.on('session:status', (data) => {
         if (data.accepted) {
-          console.log('Session accepted!');
+          
         } else {
           alert('Device rejected the connection');
           disconnectFromDevice();
@@ -78,7 +78,7 @@ export default function RemoteControl() {
 
       // Listen for command completion
       newSocket.on('command:completed', (data) => {
-        console.log('Command completed:', data);
+        
       });
     } catch (error) {
       console.error('Error connecting to device:', error);

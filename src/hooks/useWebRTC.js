@@ -11,7 +11,7 @@ export const useWebRTC = (socket, sessionId) => {
     // ─── STOP ────────────────────────────────────────────────────────────
     const stopWebRTC = useCallback(() => {
         if (pc.current) {
-            console.log('[WebRTC] Closing PeerConnection');
+            
             pc.current.ontrack = null;
             pc.current.onicecandidate = null;
             pc.current.oniceconnectionstatechange = null;
@@ -29,7 +29,7 @@ export const useWebRTC = (socket, sessionId) => {
     // ─── START ───────────────────────────────────────────────────────────
     const startWebRTC = useCallback(async () => {
         if (isStarting.current) {
-            console.log('[WebRTC] Already starting, skipping');
+            
             return;
         }
 
@@ -38,13 +38,13 @@ export const useWebRTC = (socket, sessionId) => {
         // (e.g. from screen mirroring), it must be replaced with a fresh PC
         // configured for this new stream session.
         if (pc.current) {
-            console.log('[WebRTC] Closing old PeerConnection before starting new one');
+            
             stopWebRTC();
         }
 
         try {
             isStarting.current = true;
-            console.log('[WebRTC] Creating fresh PeerConnection...');
+            
 
             const config = {
                 iceServers: [
@@ -76,10 +76,9 @@ export const useWebRTC = (socket, sessionId) => {
 
             // ── track handler ─────────────────────────────────────────
             peer.ontrack = (event) => {
-                console.log('[WebRTC] ontrack fired:', event.track.kind,
-                    'streams:', event.streams.length);
+                
                 if (event.streams && event.streams[0]) {
-                    console.log('[WebRTC] Setting stream from event.streams[0]');
+                    
                     setStream(event.streams[0]);
                 } else {
                     // Fallback: build stream from individual track
@@ -92,7 +91,7 @@ export const useWebRTC = (socket, sessionId) => {
             // ── ICE candidate ─────────────────────────────────────────
             peer.onicecandidate = (event) => {
                 if (event.candidate) {
-                    console.log('[WebRTC] Sending ICE candidate to device');
+                    
                     socket.emit('webrtc:ice-candidate', {
                         sessionId,
                         candidate: event.candidate.candidate,
@@ -101,19 +100,19 @@ export const useWebRTC = (socket, sessionId) => {
                         target: 'device'
                     });
                 } else {
-                    console.log('[WebRTC] ICE gathering complete');
+                    
                 }
             };
 
             // ── state logging ─────────────────────────────────────────
             peer.oniceconnectionstatechange = () => {
-                console.log('[WebRTC] ICE state:', peer.iceConnectionState);
+                
                 if (peer.iceConnectionState === 'failed') {
                     console.error('[WebRTC] ICE failed — check TURN server');
                 }
             };
             peer.onconnectionstatechange = () => {
-                console.log('[WebRTC] Connection state:', peer.connectionState);
+                
             };
 
             // ── create offer ──────────────────────────────────────────
@@ -126,7 +125,7 @@ export const useWebRTC = (socket, sessionId) => {
             });
             await peer.setLocalDescription(offer);
 
-            console.log('[WebRTC] Sending offer to phone, sessionId:', sessionId);
+            
             socket.emit('webrtc:offer', {
                 sessionId,
                 sdp: offer.sdp,
@@ -146,8 +145,7 @@ export const useWebRTC = (socket, sessionId) => {
         if (!socket || !sessionId) return;
 
         const handleAnswer = async (data) => {
-            console.log('[WebRTC] Answer received. PC state:',
-                pc.current?.signalingState);
+            
 
             if (!pc.current) {
                 console.warn('[WebRTC] No PeerConnection for answer');
@@ -171,13 +169,12 @@ export const useWebRTC = (socket, sessionId) => {
                     new RTCSessionDescription(data)
                 );
                 remoteDescSet.current = true;
-                console.log('[WebRTC] Remote description set ✅. State:',
-                    pc.current.signalingState);
+                
 
                 // Flush buffered ICE candidates
                 const buffered = iceCandidateBuffer.current.splice(0);
                 if (buffered.length > 0) {
-                    console.log('[WebRTC] Flushing', buffered.length, 'buffered candidates');
+                    
                     for (const c of buffered) {
                         try {
                             await pc.current.addIceCandidate(new RTCIceCandidate(c));
@@ -203,14 +200,14 @@ export const useWebRTC = (socket, sessionId) => {
             };
 
             if (!remoteDescSet.current) {
-                console.log('[WebRTC] Buffering early ICE candidate');
+                
                 iceCandidateBuffer.current.push(candidate);
                 return;
             }
 
             try {
                 await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
-                console.log('[WebRTC] ICE candidate added ✅');
+                
             } catch (e) {
                 console.error('[WebRTC] addIceCandidate failed:', e);
             }

@@ -24,12 +24,12 @@ export default function SetProfilePopup({ user, onComplete }) {
 
         setIsLoading(true);
         try {
-            console.log('Finalizing profile for:', user?.email);
+            
             const res = await api.patch('/users/profile/update', { 
                 name: trimmedName, 
                 password: trimmedPassword 
             });
-            console.log('Profile update response:', res.data);
+            
             
             // Critical: Update global auth state so isProfileSet becomes true
             updateUserInfo(res.data);

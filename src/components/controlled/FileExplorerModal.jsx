@@ -31,7 +31,7 @@ const LazyThumbnail = ({ file, sendCommand }) => {
   useEffect(() => {
     if (isVisible && !thumbnail) {
        // Request thumbnail if visible and not cached
-       console.log(`Sending thumbnail request for: ${file.path} (ID: ${file.id})`);
+       `);
        sendCommand('GET_THUMBNAIL', { path: file.path, id: file.id });
     }
   }, [isVisible, thumbnail, file.path, sendCommand, file.id]);

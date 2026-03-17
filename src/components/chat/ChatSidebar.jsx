@@ -18,7 +18,7 @@ export default function ChatSidebar({ chats, selectedUser, onSelectChat, isGuest
       <ChatSidebarHeader 
           onSearch={(val) => {
               // Internal filter logic or lift to parent if needed
-              console.log('Filtering chats for:', val);
+              
           }}
       />
 

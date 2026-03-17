@@ -15,7 +15,7 @@ class SoundManager {
         const unlock = () => {
             if (this.ctx && this.ctx.state === 'suspended') {
                 this.ctx.resume().then(() => {
-                    console.log('[Sound] AudioContext unlocked and resumed');
+                    
                     window.removeEventListener('click', unlock);
                     window.removeEventListener('touchstart', unlock);
                 });
