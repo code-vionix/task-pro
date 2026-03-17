@@ -25,7 +25,7 @@ export class NotificationsService {
       },
     });
 
-    console.log(`Notification created in DB for user ${data.userId}: ${data.message}`);
+    
 
     // Push to user in real-time
     this.gateway.sendNotification(data.userId, notification);

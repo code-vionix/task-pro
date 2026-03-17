@@ -125,16 +125,16 @@ export class UsersController {
     }
 
     try {
-      console.log('--- Avatar Upload Request ---');
-      console.log('User ID from Token:', req.user.userId);
-      console.log('File Name:', file.originalname);
-      console.log('File Size:', file.size);
+      
+      
+      
+      
 
       const url = await this.cloudinaryService.uploadImage(file);
-      console.log('Cloudinary URL Success:', url);
+      
       
       const updatedUser = await this.usersService.update(req.user.userId, { avatarUrl: url });
-      console.log('Database Update Success for User:', updatedUser.email);
+      
       
       return { url };
     } catch (error) {

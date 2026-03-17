@@ -36,7 +36,7 @@ export class RemoteControlGateway
   async handleConnection(client: Socket) {
     const authHeader = client.handshake.auth?.token;
     const queryToken = client.handshake.query?.token;
-    console.log(`[Socket] Auth check: id=${client.id}, authTok=${!!authHeader}, queryTok=${!!queryToken}`);
+    
     
     try {
       const token = (authHeader || queryToken) as string;
@@ -54,7 +54,7 @@ export class RemoteControlGateway
       // Join user room for cross-device notification/sync
       client.join(`user_${userId}`);
 
-      console.log(`[Socket] Authenticated: ${client.id} (User: ${client['userId']})`);
+      `);
     } catch (error) {
       console.error(`[Socket] Client ${client.id} auth failed: ${error.message}`);
       client.disconnect();
@@ -76,7 +76,7 @@ export class RemoteControlGateway
       namespaces.forEach(ns => {
         this.server.of(ns).emit('userStatusChanged', { userId, isOnline: data.isOnline });
       });
-      console.log(`User presence updated: ${userId} -> ${data.isOnline}`);
+      
     }
   }
 
@@ -92,7 +92,7 @@ export class RemoteControlGateway
             this.server.of(ns).emit('userStatusChanged', { userId, isOnline: false });
         });
     }
-    console.log(`Client disconnected: ${client.id}`);
+    
     await this.remoteControlService.handleDeviceDisconnect(client.id);
   }
 
@@ -265,13 +265,13 @@ export class RemoteControlGateway
       error?: string;
     },
   ) {
-    console.log(`Backend received command:result for ID: ${data.commandId}, Status: ${data.status}`);
-    console.log('DEBUG CHECK: Payload keys:', Object.keys(data));
-    console.log('DEBUG CHECK: Result type:', typeof data.result);
+    
+    );
+    
     if (data.result) {
         const resultStr = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
-        console.log('DEBUG CHECK: Result length:', resultStr.length);
-        console.log('DEBUG CHECK: Result start:', resultStr.substring(0, 100));
+        
+        );
     }
     
     try {
@@ -314,7 +314,7 @@ export class RemoteControlGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: any,
   ) {
-    console.log('[WebRTC] Received offer from web:', JSON.stringify(data));
+    );
     const session = await this.remoteControlService.getSession(data.sessionId);
     
     if (session) {
@@ -325,7 +325,7 @@ export class RemoteControlGateway
             return { success: false, error: 'Unauthorized' };
         }
 
-        console.log('[WebRTC] Forwarding offer to device:', session.deviceId);
+        
         this.server.to(`device:${session.deviceId}`).emit('webrtc:offer', data);
     } else {
         console.error('[WebRTC] Session not found for offer:', data.sessionId);
@@ -366,7 +366,7 @@ export class RemoteControlGateway
         return { success: false, error: 'Unauthorized' };
     }
 
-    console.log('[WebRTC] Received ICE candidate:', JSON.stringify(data));
+    );
     
     // If target is 'web', route to the session room
     if (data.target === 'web') {
@@ -374,7 +374,7 @@ export class RemoteControlGateway
     } 
     // If target is 'device' or not specified (default from web client), route to device
     else {
-      console.log('[WebRTC] Forwarding ICE to device:', session.deviceId);
+      
       this.server.to(`device:${session.deviceId}`).emit('webrtc:ice-candidate', data);
     }
     return { success: true };
@@ -415,7 +415,7 @@ export class RemoteControlGateway
 
         if (data.type !== 'camera') {
             if (Math.random() < 0.01) {
-                console.log(`Forwarding screen frame for session: ${data.sessionId}`);
+                
             }
         }
         this.server.to(`session:${data.sessionId}`).emit('screen:frame', {

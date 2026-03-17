@@ -33,7 +33,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
         client.join(`user_${userId}`);
         client.data.userId = userId;
         
-        console.log(`User ${userId} connected to notifications gateway`);
+        
       }
     } catch (error) {
       console.error('Socket authentication failed:', error.message);
@@ -47,7 +47,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       this.connectedUsers.set(userId, client.id);
       client.join(`user_${userId}`);
       client.data.userId = userId;
-      console.log(`User ${userId} joined notification room`);
+      
     }
   }
 
@@ -55,12 +55,12 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     const userId = client.data.userId;
     if (userId) {
       this.connectedUsers.delete(userId);
-      console.log(`User ${userId} disconnected from notifications gateway`);
+      
     }
   }
 
   sendNotification(userId: string, notification: any) {
-    console.log(`Emitting notification to room user_${userId}:`, notification);
+    
     this.server.to(`user_${userId}`).emit('newNotification', notification);
   }
 }

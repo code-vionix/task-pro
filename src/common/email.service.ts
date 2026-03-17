@@ -11,9 +11,9 @@ export class EmailService {
     const user = this.configService.get('SMTP_USER');
     const pass = this.configService.get('SMTP_PASS');
     
-    console.log('Initializing EmailService...');
-    console.log('SMTP_USER loaded:', user ? 'Yes' : 'No');
-    console.log('SMTP_PASS loaded:', pass ? 'Yes' : 'No');
+    
+    
+    
 
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
@@ -52,7 +52,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-      console.log(`${isForgotPassword ? 'Reset' : 'Magic'} link sent to ${email}`);
+      
     } catch (error) {
       console.error('Error sending email:', error);
       throw new Error('Failed to send email');

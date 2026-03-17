@@ -14,9 +14,7 @@ export class LoggerMiddleware implements NestMiddleware {
       const contentLength = response.get('content-length');
       const color = statusCode >= 400 ? '\x1b[31m' : '\x1b[32m';
 
-      console.log(
-        `${color}[HTTP] ${method} ${originalUrl} ${statusCode}\x1b[0m ${contentLength || 0} - ${userAgent} ${ip}`,
-      );
+      
     });
 
 

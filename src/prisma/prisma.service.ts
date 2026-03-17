@@ -22,7 +22,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // @ts-ignore
     this.$on('query', (e: any) => {
-      console.log(`\x1b[36m[Prisma Query]\x1b[0m ${e.query} - \x1b[33m${e.duration}ms\x1b[0m`);
+      
     });
 
     // @ts-ignore
@@ -37,7 +37,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // @ts-ignore
     this.$on('info', (e: any) => {
-      console.log(`\x1b[34m[Prisma Info]\x1b[0m ${e.message}`);
+      
     });
 
   }

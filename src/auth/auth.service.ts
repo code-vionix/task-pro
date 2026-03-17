@@ -98,8 +98,8 @@ export class AuthService {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    console.log(`Generating Magic Link for: ${email}`);
-    console.log(`Token: ${token}`);
+    
+    
 
     await this.usersService.update(user.id, {
         otp: token,
@@ -111,8 +111,8 @@ export class AuthService {
   }
 
   async verifyMagicLink(email: string, token: string) {
-    console.log(`Verifying Magic Link for: ${email}`);
-    console.log(`Received Token: ${token}`);
+    
+    
     
     const user = await this.usersService.findOne(email.toLowerCase().trim());
     
@@ -121,9 +121,9 @@ export class AuthService {
         throw new UnauthorizedException('Invalid or expired magic link');
     }
 
-    console.log(`DB Token: ${user.otp}`);
-    console.log(`DB Expires: ${user.otpExpires}`);
-    console.log(`Current Time: ${new Date()}`);
+    
+    
+    }`);
 
     if (user.otp !== token) {
         console.error('Verification Failed: Token mismatch');
@@ -141,7 +141,7 @@ export class AuthService {
         otpExpires: null,
     });
 
-    console.log('Verification Successful!');
+    
     return this.login(user);
   }
 
