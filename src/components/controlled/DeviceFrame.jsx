@@ -39,8 +39,14 @@ export default function DeviceFrame({ sendCommand, socket }) {
     isMinimized: false,
     isMaximized: false,
     isFullscreen: false,
-    position: { x: window.innerWidth - 400, y: 20 },
-    size: { width: 360, height: 720 },
+    position: { 
+      x: window.innerWidth < 768 ? 10 : window.innerWidth - 400, 
+      y: window.innerWidth < 768 ? 80 : 20 
+    },
+    size: { 
+      width: window.innerWidth < 768 ? window.innerWidth - 20 : 360, 
+      height: window.innerWidth < 768 ? window.innerHeight - 150 : 720 
+    },
   });
   
   const [isDraggingWindow, setIsDraggingWindow] = useState(false);
@@ -328,16 +334,17 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   // Screen interaction
   const handleInteraction = (e, type) => {
-    if (!isControlEnabled) return;
     const activeRef = isScreenMirroring ? videoRef : screenRef;
     if (!activeRef.current) return;
 
-    // Prevent default browser behavior (like dragging the image)
-    if (type === 'mousedown') e.preventDefault();
-
-    const rect = activeRef.current.getBoundingClientRect();
     const clientX = e.clientX;
     const clientY = e.clientY;
+    const rect = activeRef.current.getBoundingClientRect();
+
+    // Prevent default browser behavior
+    if (type === 'down') {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
+    }
 
     // Use current resolution if available, otherwise fallback to standard 1080x1920
     const screenWidth = systemStats.screenWidth || 1080;
@@ -363,33 +370,33 @@ export default function DeviceFrame({ sendCommand, socket }) {
     const relX = clientX - rect.left - offsetX;
     let relY = clientY - rect.top - offsetY;
 
-    // Apply a 3% positive bias to shift the touch DOWN.
-    // The user reported that clicking an item triggers the one ABOVE it,
-    // which means the touch is shifted up. We add to relY to fix this.
-    const yBias = displayedHeight * 0.03; 
-    relY += yBias;
+    // Small y-correction (2%) to account for browser UI offsets reported by user
+    relY += displayedHeight * 0.02;
 
     // Normalized coordinates (0.0 to 1.0)
     const normX = Math.max(0, Math.min(1, relX / displayedWidth));
     const normY = Math.max(0, Math.min(1, relY / displayedHeight));
     
-
-    if (type === 'mousedown') {
+    if (type === 'down') {
       setDragStart({ x: normX, y: normY, time: Date.now() });
-    } else if (type === 'mouseup' || type === 'mouseleave') {
+    } else if (type === 'up' || type === 'leave' || type === 'cancel') {
       if (!dragStart) return;
       
       const duration = Date.now() - dragStart.time;
       const dist = Math.sqrt(Math.pow(normX - dragStart.x, 2) + Math.pow(normY - dragStart.y, 2));
 
-      if (type === 'mouseup') {
+      if (type === 'up') {
         setTouchIndicator({ x: clientX - rect.left, y: clientY - rect.top });
         setTimeout(() => setTouchIndicator(null), 300);
       }
 
-      if (!isControlEnabled) return;
+      const isInside = normX >= 0 && normX <= 1 && normY >= 0 && normY <= 1;
+      if (!isControlEnabled) {
+          setDragStart(null);
+          return;
+      }
 
-      if (type === 'mouseup' && dist < 0.04) {
+      if (type === 'up' && dist < 0.02 && isInside) {
         // Only trigger click/long-press if inside the bounds
         if (normX >= 0 && normX <= 1 && normY >= 0 && normY <= 1) {
           if (duration < 500) {
@@ -398,7 +405,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
             sendCommand('TOUCH_LONG_PRESS', { x: normX, y: normY, normalized: true });
           }
         }
-      } else if (dist >= 0.04) {
+      } else if (dist >= 0.02) {
         sendCommand('TOUCH_SWIPE', { 
             x1: dragStart.x, y1: dragStart.y, 
             x2: normX, y2: normY, 
@@ -412,11 +419,24 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   // Calculate window styles
   const getWindowStyle = () => {
+    const isMobile = window.innerWidth < 768;
+    
     if (windowState.isFullscreen) {
       return { position: 'fixed', inset: 0, width: '100vw', height: '100vh', zIndex: 300 };
     }
-    if (windowState.isMaximized) {
-      return { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '90vw', maxWidth: '500px', height: '90vh', zIndex: 300 };
+    if (windowState.isMaximized || isMobile) {
+      return { 
+        position: 'fixed', 
+        left: '50%', 
+        top: '50%', 
+        transform: 'translate(-50%, -50%)', 
+        width: isMobile ? '95vw' : '90vw', 
+        maxWidth: '500px', 
+        height: isMobile ? '85vh' : '90vh', 
+        zIndex: 300,
+        boxShadow: '0 0 50px rgba(0,0,0,0.5)',
+        borderRadius: isMobile ? '24px' : '8px'
+      };
     }
     return {
       position: 'fixed',
@@ -498,7 +518,13 @@ export default function DeviceFrame({ sendCommand, socket }) {
       </div>
 
       {/* Screen Content */}
-      <div className="flex-1 relative bg-black w-full h-full overflow-hidden flex items-center justify-center">
+      <div 
+        className="flex-1 relative bg-black w-full h-full overflow-hidden flex items-center justify-center touch-none select-none"
+        onPointerDown={(e) => handleInteraction(e, 'down')}
+        onPointerUp={(e) => handleInteraction(e, 'up')}
+        onPointerLeave={(e) => handleInteraction(e, 'leave')}
+        onPointerCancel={(e) => handleInteraction(e, 'cancel')}
+      >
             {isCameraStreaming ? (
                 <div className="relative w-full h-full">
                   <video ref={videoRef} autoPlay playsInline muted={!isAudioStreaming} className={`w-full h-full object-contain ${!stream ? 'hidden' : ''}`} />
@@ -509,7 +535,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                     </div>
                   )}
                   {/* Camera Controls Overlay */}
-                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute top-4 right-4 flex gap-2 sm:opacity-0 sm:hover:opacity-100 transition-opacity duration-300 opacity-100">
                     <button onClick={() => { stopWebRTC(); hasStarted.current = false; const nextFacing = currentCameraFacing === 0 ? 1 : 0; dispatch(setCurrentCameraFacing(nextFacing)); sendCommand('CAMERA_STREAM_START', { facing: nextFacing }); setTimeout(() => { if (isCameraStreaming) { startWebRTC(); hasStarted.current = true; } }, 1500); }} className="p-2 rounded bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm">
                       <RotateCcw size={14} />
                     </button>
@@ -521,11 +547,8 @@ export default function DeviceFrame({ sendCommand, socket }) {
               ) : isScreenMirroring ? (
                 <div className="relative w-full h-full">
                   <video ref={videoRef} autoPlay playsInline muted={!isAudioStreaming}
-                    onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
-                    onMouseUp={(e) => handleInteraction(e, 'mouseup')}
-                    onMouseLeave={(e) => handleInteraction(e, 'mouseleave')}
                     onContextMenu={(e) => e.preventDefault()}
-                    className={`w-full h-full object-contain select-none ${!stream ? 'hidden' : ''}`} 
+                    className={`w-full h-full object-contain pointer-events-none ${!stream ? 'hidden' : ''}`} 
                   />
                   {!stream && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
@@ -539,10 +562,7 @@ export default function DeviceFrame({ sendCommand, socket }) {
                 </div>
               ) : screenFrame ? (
                 <div className="relative w-full h-full">
-                  <img ref={screenRef} src={`data:image/jpeg;base64,${screenFrame}`} className="w-full h-full object-contain select-none" alt="Screen" 
-                    onMouseDown={(e) => handleInteraction(e, 'mousedown')} 
-                    onMouseUp={(e) => handleInteraction(e, 'mouseup')} 
-                    onMouseLeave={(e) => handleInteraction(e, 'mouseleave')}
+                  <img ref={screenRef} src={`data:image/jpeg;base64,${screenFrame}`} className="w-full h-full object-contain pointer-events-none" alt="Screen" 
                     onContextMenu={(e) => e.preventDefault()}
                     draggable={false} 
                   />
