@@ -10,7 +10,14 @@ import {
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: { 
+    origin: [
+      'https://taskpro.codevionix.com',
+      'http://localhost:3000',
+      'http://localhost:5173'
+    ],
+    credentials: true 
+  },
 })
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private jwtService: JwtService) {}

@@ -16,7 +16,14 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: { 
+    origin: [
+      'https://taskpro.codevionix.com',
+      'http://localhost:3000',
+      'http://localhost:5173'
+    ],
+    credentials: true 
+  },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
