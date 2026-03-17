@@ -24,12 +24,10 @@ export default function SetProfilePopup({ user, onComplete }) {
 
         setIsLoading(true);
         try {
-            
             const res = await api.patch('/users/profile/update', { 
                 name: trimmedName, 
                 password: trimmedPassword 
             });
-            
             
             // Critical: Update global auth state so isProfileSet becomes true
             updateUserInfo(res.data);
@@ -43,7 +41,7 @@ export default function SetProfilePopup({ user, onComplete }) {
                 }
             }, 500);
         } catch (err) {
-            console.error('Profile update error:', err);
+
             toast.error(err.response?.data?.message || "Failed to finalize profile");
         } finally {
             setIsLoading(false);

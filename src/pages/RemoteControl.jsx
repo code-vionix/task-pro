@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import {
     Monitor,
@@ -35,7 +36,7 @@ export default function RemoteControl() {
       });
       setDevices(response.data);
     } catch (error) {
-      console.error('Error fetching devices:', error);
+
     }
   };
 
@@ -64,7 +65,7 @@ export default function RemoteControl() {
       // Listen for session status
       newSocket.on('session:status', (data) => {
         if (data.accepted) {
-          
+          // Connection accepted
         } else {
           alert('Device rejected the connection');
           disconnectFromDevice();
@@ -78,10 +79,10 @@ export default function RemoteControl() {
 
       // Listen for command completion
       newSocket.on('command:completed', (data) => {
-        
+        // Handle command completion
       });
     } catch (error) {
-      console.error('Error connecting to device:', error);
+
       setLoading(false);
     }
   };
@@ -124,7 +125,7 @@ export default function RemoteControl() {
       });
       fetchDevices();
     } catch (error) {
-      console.error('Error deleting device:', error);
+
     }
   };
 

@@ -104,7 +104,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
         // If mode changed (e.g. from camera to screen), we MUST restart WebRTC
         if (previousMode.current !== mode) {
           
-          
           if (hasStarted.current) {
             stopWebRTC();
             hasStarted.current = false;
@@ -118,7 +117,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
           }
         } else if (!hasStarted.current) {
           // Normal start if not started yet
-          
           await new Promise(r => setTimeout(r, 800)); // Wait for Android camera/screen to initialize
           await startWebRTC();
           if (active) {
@@ -129,7 +127,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
       } else {
         // Stop if nothing is streaming
         if (hasStarted.current) {
-          ');
           stopWebRTC();
           hasStarted.current = false;
           previousMode.current = null;
@@ -143,12 +140,11 @@ export default function DeviceFrame({ sendCommand, socket }) {
 
   useEffect(() => {
     if (stream) {
-      
       [videoRef.current, audioRef.current].forEach(el => {
         if (el) {
           el.srcObject = stream;
-          el.onloadedmetadata = () => el.play().catch(e => console.error(e));
-          el.play().catch(e => console.error('[WebRTC] Play failed:', e));
+          el.onloadedmetadata = () => el.play().catch(e => {});
+          el.play().catch(e => {});
         }
       });
     }
@@ -156,7 +152,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
     // Auto-detect lock type from device
     if (socket) {
       socket.on('device:lock_type', (data) => {
-        
         setUnlockType(data.lockType);
       });
 
@@ -215,9 +210,9 @@ export default function DeviceFrame({ sendCommand, socket }) {
     [videoRef.current, audioRef.current].forEach(el => {
       if (el) {
         el.muted = !isAudioStreaming;
-        if (isAudioStreaming) {
-          el.play().catch(e => console.warn('[Audio] Play trigger failed:', e));
-        }
+          if (isAudioStreaming) {
+            el.play().catch(e => {});
+          }
       }
     });
   }, [isAudioStreaming]);
@@ -378,7 +373,6 @@ export default function DeviceFrame({ sendCommand, socket }) {
     const normX = Math.max(0, Math.min(1, relX / displayedWidth));
     const normY = Math.max(0, Math.min(1, relY / displayedHeight));
     
-    
 
     if (type === 'mousedown') {
       setDragStart({ x: normX, y: normY, time: Date.now() });
@@ -399,15 +393,12 @@ export default function DeviceFrame({ sendCommand, socket }) {
         // Only trigger click/long-press if inside the bounds
         if (normX >= 0 && normX <= 1 && normY >= 0 && normY <= 1) {
           if (duration < 500) {
-            
             sendCommand('TOUCH_CLICK', { x: normX, y: normY, normalized: true });
           } else {
-            
             sendCommand('TOUCH_LONG_PRESS', { x: normX, y: normY, normalized: true });
           }
         }
       } else if (dist >= 0.04) {
-        
         sendCommand('TOUCH_SWIPE', { 
             x1: dragStart.x, y1: dragStart.y, 
             x2: normX, y2: normY, 

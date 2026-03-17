@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -51,7 +52,7 @@ export const useRemoteControl = () => {
       });
       dispatch(setDevices(response.data));
     } catch (error) {
-      console.error('Error fetching devices:', error);
+
     }
   }, [dispatch]);
 
@@ -79,7 +80,7 @@ export const useRemoteControl = () => {
     dispatch(setCameraFrame(null));
     try {
       const token = localStorage.getItem('access_token');
-      
+
       const newSocket = io(`${API_URL}`, { 
         auth: { token },
         transports: ['websocket']
@@ -87,7 +88,7 @@ export const useRemoteControl = () => {
       setSocket(newSocket);
 
       newSocket.on('connect', () => {
-        
+
         dispatch(setConnectingDeviceId(deviceId));
         
         // Wait a small moment before requesting a new session 
@@ -190,9 +191,9 @@ export const useRemoteControl = () => {
             break;
           case 'GET_THUMBNAIL':
             if (data.status === 'FAILED') {
-              console.error(`Thumbnail failed for ${data.path}: ${data.error}`);
+
             } else if (data.result && data.path) {
-              
+
               dispatch(setThumbnail({ path: data.path, data: `data:image/jpeg;base64,${data.result}` }));
             }
             break;

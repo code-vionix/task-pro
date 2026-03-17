@@ -1,100 +1,84 @@
-// Simple short notification sounds (Base64 encoded MP3s)
 
-const NOTIFICATION_SOUND = 'data:audio/mp3;base64,SUQzBAAAAAABAFRYVFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFRYAAAAEQAAA21pbm9yX3ZlcnNpb24AMABUWFRYAAAAHAAAA2NvbXBhdGlibGVfYnJhbmRzAGlzb21tcDQyAFRTU0UAAAAOAAADTGF2ZjU3LjU2LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAABAAAAAAAAAAAAAAJaaW5nAAAAAAAACgAAAAEAAAB7AAADUAMAAAABAAAAjgAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-const MESSAGE_SOUND = 'data:audio/mp3;base64,SUQzBAAAAAABAFRYVFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFRYAAAAEQAAA21pbm9yX3ZlcnNpb24AMABUWFRYAAAAHAAAA2NvbXBhdGlibGVfYnJhbmRzAGlzb21tcDQyAFRTU0UAAAAOAAADTGF2ZjU3LjU2LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAABAAAAAAAAAAAAAAJaaW5nAAAAAAAACgAAAAEAAAB7AAADUAMAAAABAAAAjgAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//uQZAAP8AAAARAAAAAAgAAAEAAAAAAAAAAAB7AAAAAAACAAAAAP3/AAADUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-// Note: Real sounds should be longer/different. Using placeholder silent/short base64 for safety if real assets aren't available. 
-// Actually, I'll use a reliable "pop" sound URL or generate a beep with AudioContext to ensure it works without external files.
-// But AudioContext is better.
-
+/**
+ * SoundManager handles audio feedback for messages and notifications.
+ * It uses a Lazy-Load approach for the AudioContext to comply with browser autoplay policies.
+ */
 class SoundManager {
     constructor() {
         this.ctx = null;
-        this.muted = false;
-        
-        // Add interaction listener to unlock AudioContext
-        const unlock = () => {
-            if (this.ctx && this.ctx.state === 'suspended') {
-                this.ctx.resume().then(() => {
-                    
-                    window.removeEventListener('click', unlock);
-                    window.removeEventListener('touchstart', unlock);
-                });
-            } else if (!this.ctx) {
-                this.init();
-            }
+        this.buffers = {};
+        this.isMuted = false;
+        this.sounds = {
+            message: '/sounds/message.mp3',
+            notification: '/sounds/notification.mp3'
         };
-        
+
+        // UI trigger for context initialization (must be after user interaction)
         if (typeof window !== 'undefined') {
+            const unlock = () => {
+                this.init();
+                window.removeEventListener('click', unlock);
+                window.removeEventListener('keydown', unlock);
+            };
             window.addEventListener('click', unlock);
-            window.addEventListener('touchstart', unlock);
+            window.addEventListener('keydown', unlock);
         }
     }
 
-    init() {
-        if (!this.ctx && typeof window !== 'undefined') {
+    async init() {
+        if (this.ctx) return;
+        
+        try {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Resume if suspended (common in Chrome)
+            if (this.ctx.state === 'suspended') {
+                await this.ctx.resume();
+            }
+
+            // Pre-load sounds
+            for (const [name, url] of Object.entries(this.sounds)) {
+                this.loadBuffer(name, url);
+            }
+        } catch (e) {
+
         }
     }
 
-    setMuted(isMuted) {
-        this.muted = isMuted;
+    async loadBuffer(name, url) {
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            this.buffers[name] = await this.ctx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+
+        }
     }
 
-    // Modern "Bloop" sound for messages
+    setMuted(m) {
+        this.isMuted = m;
+    }
+
+    play(name) {
+        if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+
+        // Double check context state
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+
+        const source = this.ctx.createBufferSource();
+        source.buffer = this.buffers[name];
+        source.connect(this.ctx.destination);
+        source.start(0);
+    }
+
     playMessage() {
-        if (this.muted) return;
-        this.init();
-        
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-        
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, now);
-        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
-        osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
-        
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        
-        osc.start(now);
-        osc.stop(now + 0.15);
+        this.play('message');
     }
 
-    // Modern "Ping" sound for notifications
     playNotification() {
-        if (this.muted) return;
-        this.init();
-        
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, now); 
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
-        
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.1, now + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-        
-        osc.start(now);
-        osc.stop(now + 0.5);
+        this.play('notification');
     }
 }
 

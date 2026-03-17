@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
@@ -49,8 +50,6 @@ export const SocketProvider = ({ children }) => {
     if (user && !socketRef.current) {
         const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'; 
         
-        
-        
         socketRef.current = io(socketUrl, {
             auth: {
                 token: localStorage.getItem('access_token')
@@ -60,24 +59,21 @@ export const SocketProvider = ({ children }) => {
         const socket = socketRef.current;
 
         socket.on('connect', () => {
-             
+
              if (user.id) {
-                 
                  socket.emit('join_user', user.id);
              }
         });
 
         socket.on('connect_error', (error) => {
-             console.error('[Socket] Connection error:', error);
+
         });
 
         socket.on('disconnect', (reason) => {
-             
         });
 
         // Global Message Listener
         socket.on('newMessage', (message) => {
-            
             const isInChat = window.location.pathname.includes('/chat');
             
             // Only play sound, no toast as requested (notifications should only be on the icon)
@@ -89,7 +85,6 @@ export const SocketProvider = ({ children }) => {
 
         // Global Notification Listener - Enhanced with popup
         socket.on('newNotification', (notification) => {
-             
              
              // Play sound
              soundManager.playNotification();
@@ -109,13 +104,11 @@ export const SocketProvider = ({ children }) => {
 
         // Global Message Read Listener
         socket.on('messagesRead', (data) => {
-            
             window.dispatchEvent(new CustomEvent('messagesRead', { detail: data }));
         });
 
         return () => {
             if (socketRef.current) {
-                
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
