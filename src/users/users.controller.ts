@@ -125,21 +125,10 @@ export class UsersController {
     }
 
     try {
-      
-      
-      
-      
-
       const url = await this.cloudinaryService.uploadImage(file);
-      
-      
-      const updatedUser = await this.usersService.update(req.user.userId, { avatarUrl: url });
-      
-      
+      await this.usersService.update(req.user.userId, { avatarUrl: url });
       return { url };
     } catch (error) {
-      console.error('--- Avatar Upload ERROR ---');
-      console.error('Error Details:', error);
       throw new BadRequestException('Failed to upload avatar: ' + error.message);
     }
   }
@@ -156,7 +145,6 @@ export class UsersController {
       await this.usersService.update(req.user.userId, { coverImageUrl: url });
       return { url };
     } catch (error) {
-      console.error('Cover upload error:', error);
       throw new BadRequestException('Failed to upload cover image: ' + error.message);
     }
   }

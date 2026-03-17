@@ -46,7 +46,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const decoded: any = this.jwtService.verify(token);
         userId = decoded.sub;
       } catch (e) {
-        console.warn(`[ChatGateway] JWT verify failed for ${client.id}: ${e.message}`);
+
       }
     }
 
@@ -56,7 +56,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     if (!userId) {
-      console.error(`[ChatGateway] No userId for ${client.id}, disconnecting.`);
       client.disconnect();
       return;
     }
@@ -70,9 +69,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         where: { id: userId },
         data: { isOnline: true, lastSeen: new Date() },
       });
-      `);
     } catch (error) {
-      console.warn(`[ChatGateway] Could not update status for user ${userId}: Record not found. Client might be using an old token.`);
       client.disconnect();
       return;
     }
@@ -89,7 +86,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       data: { isOnline: false, lastSeen: new Date() },
     }).catch(() => {}); // ignore if user deleted
     this.server.emit('userStatusChanged', { userId, isOnline: false });
-    
   }
 
   // ─── Event Listeners (Internal) ───────────────────────────────────────────────
@@ -101,7 +97,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (receiverId !== senderId) {
       this.server.to(`user_${senderId}`).emit('newMessage', message);
     }
-    
   }
 
   @OnEvent('messages.read')
@@ -113,7 +108,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleConversationDeleted(payload: { userId: string; otherUserId: string }) {
     this.server.to(`user_${payload.userId}`).emit('conversationDeleted', { otherUserId: payload.otherUserId });
     this.server.to(`user_${payload.otherUserId}`).emit('conversationDeleted', { otherUserId: payload.userId });
-    
   }
 
   // ─── Chat Events ──────────────────────────────────────────────────────────────
@@ -205,7 +199,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { receiverId: string; senderId: string; senderName: string; senderAvatar?: string; isVideo: boolean },
   ) {
     const senderId = client['userId'] || data.senderId;
-    `);
 
     this.server.to(`user_${data.receiverId}`).emit('incomingCall', {
       senderId,
@@ -221,7 +214,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { callerId: string; receiverId: string },
   ) {
-    
     this.server.to(`user_${data.callerId}`).emit('callAccepted', {
       callerId: data.callerId,
       receiverId: data.receiverId,
@@ -233,7 +225,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { callerId: string; receiverId: string; reason?: string },
   ) {
-    
     this.server.to(`user_${data.callerId}`).emit('callRejected', {
       callerId: data.callerId,
       receiverId: data.receiverId,
@@ -271,7 +262,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { targetId: string },
   ) {
     const senderId = client['userId'];
-    
     this.server.to(`user_${data.targetId}`).emit('callEnded', {
       fromId: senderId,
     });

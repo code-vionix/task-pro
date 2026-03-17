@@ -50,7 +50,6 @@ export class AuthService {
         }
         
         await this.usersService.update(user.id, { failedAttempts: attempts, lockoutUntil });
-        console.warn(`User ${email} failed login attempt ${attempts}`);
         
         return null; 
     }
@@ -98,8 +97,6 @@ export class AuthService {
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    
-    
 
     await this.usersService.update(user.id, {
         otp: token,
@@ -112,26 +109,18 @@ export class AuthService {
 
   async verifyMagicLink(email: string, token: string) {
     
-    
-    
     const user = await this.usersService.findOne(email.toLowerCase().trim());
     
     if (!user) {
-        console.error('Verification Failed: User not found');
         throw new UnauthorizedException('Invalid or expired magic link');
     }
 
-    
-    
-    }`);
 
     if (user.otp !== token) {
-        console.error('Verification Failed: Token mismatch');
         throw new UnauthorizedException('Invalid or expired magic link');
     }
 
     if (user.otpExpires && user.otpExpires < new Date()) {
-        console.error('Verification Failed: Token expired');
         throw new UnauthorizedException('Invalid or expired magic link');
     }
 
@@ -141,7 +130,6 @@ export class AuthService {
         otpExpires: null,
     });
 
-    
     return this.login(user);
   }
 

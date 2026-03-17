@@ -37,12 +37,10 @@ export class RemoteControlGateway
     const authHeader = client.handshake.auth?.token;
     const queryToken = client.handshake.query?.token;
     
-    
     try {
       const token = (authHeader || queryToken) as string;
       
       if (!token) {
-        console.error(`[Socket] Client ${client.id} disconnected: No token provided in handshake`);
         client.disconnect();
         return;
       }
@@ -54,10 +52,8 @@ export class RemoteControlGateway
       // Join user room for cross-device notification/sync
       client.join(`user_${userId}`);
 
-      `);
     } catch (error) {
-      console.error(`[Socket] Client ${client.id} auth failed: ${error.message}`);
-      client.disconnect();
+        client.disconnect();
     }
   }
 
@@ -182,7 +178,7 @@ export class RemoteControlGateway
       // Verify ownership: mobile device must be owned by the user in the session
       const device = await this.remoteControlService.getDevice(session.deviceId);
       if (device?.userId !== client['userId']) {
-        console.error('[Session] Unauthorized response by user:', client['userId']);
+
         return { success: false, error: 'Unauthorized' };
       }
 
@@ -266,14 +262,6 @@ export class RemoteControlGateway
     },
   ) {
     
-    );
-    
-    if (data.result) {
-        const resultStr = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
-        
-        );
-    }
-    
     try {
         const command = await this.remoteControlService.getCommand(data.commandId);
         if (!command) throw new Error('Command not found');
@@ -284,7 +272,7 @@ export class RemoteControlGateway
         // Check ownership: device sending the result must be owned by the authenticated user
         const device = await this.remoteControlService.getDevice(session.deviceId);
         if (device?.userId !== client['userId']) {
-           console.error('[Command] Unauthorized result by user:', client['userId']);
+
            return { success: false, error: 'Unauthorized' };
         }
 
@@ -303,7 +291,7 @@ export class RemoteControlGateway
 
         return { success: true };
     } catch (err) {
-        console.error(`Backend failed to process result for ${data.commandId}:`, err);
+
         return { success: false, error: err.message };
     }
   }
@@ -314,21 +302,21 @@ export class RemoteControlGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: any,
   ) {
-    );
+
     const session = await this.remoteControlService.getSession(data.sessionId);
     
     if (session) {
         // Verify ownership
         const device = await this.remoteControlService.getDevice(session.deviceId);
         if (device?.userId !== client['userId']) {
-            console.error('[WebRTC] Unauthorized offer attempt by user:', client['userId']);
+
             return { success: false, error: 'Unauthorized' };
         }
 
-        
+
         this.server.to(`device:${session.deviceId}`).emit('webrtc:offer', data);
     } else {
-        console.error('[WebRTC] Session not found for offer:', data.sessionId);
+
     }
     return { success: true };
   }
@@ -343,7 +331,7 @@ export class RemoteControlGateway
         // Verify ownership
         const device = await this.remoteControlService.getDevice(session.deviceId);
         if (device?.userId !== client['userId']) {
-            console.error('[WebRTC] Unauthorized answer by user:', client['userId']);
+
             return { success: false, error: 'Unauthorized' };
         }
         this.server.to(`session:${data.sessionId}`).emit('webrtc:answer', data);
@@ -362,11 +350,11 @@ export class RemoteControlGateway
     // Verify ownership
     const device = await this.remoteControlService.getDevice(session.deviceId);
     if (device?.userId !== client['userId']) {
-        console.error('[WebRTC] Unauthorized ICE candidate by user:', client['userId']);
+
         return { success: false, error: 'Unauthorized' };
     }
 
-    );
+
     
     // If target is 'web', route to the session room
     if (data.target === 'web') {
@@ -374,7 +362,7 @@ export class RemoteControlGateway
     } 
     // If target is 'device' or not specified (default from web client), route to device
     else {
-      
+
       this.server.to(`device:${session.deviceId}`).emit('webrtc:ice-candidate', data);
     }
     return { success: true };
@@ -414,9 +402,7 @@ export class RemoteControlGateway
         }
 
         if (data.type !== 'camera') {
-            if (Math.random() < 0.01) {
-                
-            }
+
         }
         this.server.to(`session:${data.sessionId}`).emit('screen:frame', {
           frame: data.frame,
