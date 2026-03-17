@@ -71,15 +71,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.connectedUsers.set(userId, client.id);
     client.join(`user_${userId}`);
 
-    try {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { isOnline: true, lastSeen: new Date() },
-      });
-    } catch (error) {
-      client.disconnect();
-      return;
-    }
+    await this.prisma.user.updateMany({
+      where: { id: userId },
+      data: { isOnline: true, lastSeen: new Date() },
+    });
     this.server.emit('userStatusChanged', { userId, isOnline: true });
   }
 
@@ -88,10 +83,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId) return;
 
     this.connectedUsers.delete(userId);
-    await this.prisma.user.update({
+    await this.prisma.user.updateMany({
       where: { id: userId },
       data: { isOnline: false, lastSeen: new Date() },
-    }).catch(() => {}); // ignore if user deleted
+    });
     this.server.emit('userStatusChanged', { userId, isOnline: false });
   }
 
